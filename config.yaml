@@ -1,0 +1,34 @@
+# Configuration for RAG System
+
+document_processing:
+  chunk_size: 512
+  chunk_overlap: 50
+  supported_formats: ["pdf", "xlsx", "csv"]
+  enable_ocr: true
+  extract_images: true
+  
+retrieval:
+  embedding_model: "all-MiniLM-L6-v2"
+  vector_store: "faiss"
+  top_k: 5
+  similarity_threshold: 0.7
+
+generation:
+  llm_provider: "groq"
+  model: "llama-3.3-70b-versatile"
+  temperature: 0.1
+  max_tokens: 1000
+  enable_streaming: true
+
+# Enhanced Features Configuration
+features:
+  follow_up_questions: true
+  confidence_scoring: true
+  pdf_export: true
+  semantic_highlighting: true
+  analytics_dashboard: true
+  summary_cards: true
+
+evaluation:
+  metrics: ["recall@5", "exact_match", "f1_score", "citation_accuracy"]
+  test_set_size: 50

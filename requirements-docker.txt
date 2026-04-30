@@ -1,0 +1,52 @@
+# ============================================
+# DOCKER REQUIREMENTS FOR MULTIMODAL RAG SYSTEM
+# ============================================
+# Optimized for Docker container deployment
+# Torch is installed separately with CPU-only version
+# ============================================
+
+# Web Interface
+streamlit==1.28.0
+
+# LLM APIs
+groq==0.13.0
+openai>=1.0.0
+anthropic>=0.7.0
+google-generativeai>=0.3.0
+cohere>=4.0.0
+
+# Embeddings & Retrieval
+sentence-transformers==2.2.2
+transformers==4.30.2
+huggingface-hub==0.16.4
+tokenizers==0.13.3
+faiss-cpu==1.7.4
+
+# Document Processing
+PyMuPDF>=1.23.0
+pdfplumber>=0.10.0
+pandas==2.0.0
+pytesseract>=0.3.10
+
+# Multimodal (CLIP embeddings)
+Pillow>=9.0.0
+open-clip-torch>=2.20.0
+
+# Visualization
+plotly==5.17.0
+
+# Utilities
+python-dotenv==1.0.0
+tqdm>=4.66.0
+numpy>=1.24.0
+
+# Vector Store (optional)
+chromadb>=0.4.0
+
+# PDF Export (NEW)
+fpdf2>=2.7.0
+
+# Evaluation Metrics
+rouge-score>=0.1.2
+bert-score>=0.3.13
+nltk>=3.8.0

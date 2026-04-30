@@ -1,0 +1,82 @@
+# ============================================
+# OPTIMIZED DOCKER IGNORE
+# ============================================
+# Excludes unnecessary files from build context
+# Reduces image size and speeds up builds
+# IMPORTANT: !models/ is INCLUDED (negation)
+# ============================================
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs & editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+docs/
+
+# Docker files (don't copy into image)
+Dockerfile
+docker-compose.yml
+.dockerignore
+requirements-docker.txt
+
+# Tests & development files
+tests/
+test_*.py
+*_test.py
+pytest.ini
+.pytest_cache/
+.coverage
+htmlcov/
+notebooks/
+project_structure.py
+check_banks.py
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Archives
+*.tar
+*.zip
+*.gz
+
+# Environment examples
+.env.example
+
+# IMPORTANT: Include models directory (negation pattern)
+!models/
+

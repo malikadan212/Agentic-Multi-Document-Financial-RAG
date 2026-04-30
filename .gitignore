@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Data
+data/raw/
+data/processed/
+*.pdf
+*.xlsx
+*.csv
+
+# Models
+models/
+*.pkl
+*.h5
+*.pt
+
+# API Keys
+.env
+*.key
+.env.example
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Results
+results/
+logs/

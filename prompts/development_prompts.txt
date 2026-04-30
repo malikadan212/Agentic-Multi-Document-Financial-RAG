@@ -1,0 +1,113 @@
+# Prompts Used for Multi-Document Financial Analysis RAG System
+# These prompts were used during the development process to guide implementation
+
+## Prompt 1: System Analysis and Issue Identification
+"Can you analyze the RAG system architecture and identify potential issues 
+in the codebase? I'd like to understand what problems exist in the app.py 
+file and its dependencies, and how we might systematically address them 
+to improve the system's reliability."
+
+## Prompt 2: Path Configuration Issue
+"I'm seeing import errors when running the application. Could you explain 
+how Python's sys.path works and what the correct approach would be for 
+adding the src directory to the path in a Streamlit application?"
+
+## Prompt 3: ChromaDB API Modernization
+"I've noticed ChromaDB has deprecated some APIs. What are the current 
+best practices for initializing ChromaDB with persistent storage, and 
+how should the Settings configuration be handled in newer versions?"
+
+## Prompt 4: Gemini Model Availability
+"Which Google Gemini models are currently stable and available via the API? 
+I want to understand the differences between Gemini 1.5 and 2.0 versions 
+and implement appropriate fallbacks for unavailable models."
+
+## Prompt 5: Temporary File Management
+"What are the best practices for handling temporary file cleanup in a 
+Streamlit application that processes uploaded documents? How can I ensure 
+files are properly cleaned up even if processing fails?"
+
+## Prompt 6: PDF Text Extraction Robustness
+"When using PyMuPDF for PDF text extraction, how should I handle different 
+block types returned by get_text('blocks')? I want to understand the 
+structure of block tuples and implement safe content extraction."
+
+## Prompt 7: Citation Pattern Matching
+"How can I design a flexible regex system for extracting citations from 
+LLM responses? I need to handle multiple formats like [Source: Doc, Page X] 
+and variations while avoiding duplicates."
+
+## Prompt 8: NLTK Lazy Loading
+"What's the recommended approach for handling NLTK data downloads in a 
+production application? I want to avoid blocking imports while ensuring 
+the punkt tokenizer is available when needed."
+
+## Prompt 9: Document Processing Pipeline Investigation
+"The document chunking is producing very few or empty chunks from uploaded 
+PDFs. Can you explain the semantic chunking process and identify what 
+might cause text extraction to fail or produce insufficient content?"
+
+## Prompt 10: OCR Integration
+"How can I integrate Tesseract OCR as a fallback for scanned PDF documents? 
+I want to understand the workflow for detecting when OCR is needed and 
+how to properly render PDF pages for OCR processing."
+
+## Prompt 11: Sentence Splitting for Chunking
+"What are effective regex patterns for sentence splitting that avoid 
+breaking on decimal numbers and abbreviations? I need to understand 
+how to create semantically meaningful document chunks."
+
+## Prompt 12: Streamlit Width Parameter
+"I'm getting a TypeError with st.dataframe() using width='stretch'. 
+What is the correct parameter syntax for making dataframes use the 
+full container width in current Streamlit versions?"
+
+## Prompt 13: Frontend UI Improvements
+"What are best practices for creating a clean, professional Streamlit 
+interface? I want to improve text visibility (especially with dark themes), 
+remove unnecessary visual clutter, and ensure proper contrast in the UI."
+
+## Prompt 14: Docker Containerization
+"How should I structure a Dockerfile for a Streamlit RAG application 
+that includes PyTorch, sentence-transformers, and Tesseract OCR? 
+What are the key considerations for layer caching and image size?"
+
+## Prompt 15: Docker Compose Configuration
+"What's the recommended docker-compose.yml structure for a RAG application 
+that needs environment variables for multiple API keys and persistent 
+data storage?"
+
+## Prompt 16: Prompt Engineering Documentation
+"How should I document the prompts used in a RAG system for a research 
+paper? What prompt engineering techniques are most relevant for 
+financial document analysis?"
+
+## Prompt 17: Project Rubric Analysis
+"Given these project rubrics (Dataset, Model Implementation, Evaluation, 
+Prompt Engineering, Code Quality, Docker, Industry Standards), can you 
+analyze which requirements are met and identify any gaps?"
+
+## Prompt 18: Research Paper Structure
+"What sections should be included in a Springer LNCS format research 
+paper about a RAG system? How should I structure the methodology 
+section to include mathematical formulations and algorithmic details?"
+
+## Prompt 19: Related Work Coverage
+"What are the key papers I should reference when writing about RAG systems, 
+embedding models, and financial NLP? I need to understand the foundational 
+works and recent advances in these areas."
+
+## Prompt 20: Ablation Study Design
+"How should I design an ablation study for a RAG system? What hyperparameters 
+are most important to analyze, and how should I present the results 
+to show their impact on system performance?"
+
+## Prompt 21: Experimental Results Presentation
+"What tables and metrics should I include when presenting experimental 
+results for a RAG system evaluation? How should I compare against 
+baseline approaches and state-of-the-art systems?"
+
+## Prompt 22: Limitations and Future Work
+"What are typical limitations to acknowledge in a RAG system for 
+financial document analysis? What future research directions would 
+be appropriate to discuss?"
