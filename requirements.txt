@@ -1,26 +1,25 @@
 # Web Interface
-streamlit==1.28.0
+streamlit>=1.28.0
 
 # LLM API (FREE - Groq only) - Latest stable version
-groq==0.13.0
+groq>=0.13.0
 
+# Embeddings & Retrieval (Python 3.12 compatible)
+sentence-transformers>=2.2.2
+transformers>=4.30.2
+huggingface-hub>=0.16.4
+tokenizers>=0.13.3
+faiss-cpu>=1.8.0
 
-# Embeddings & Retrieval (fully compatible stack)
-sentence-transformers==2.2.2
-transformers==4.30.2
-huggingface-hub==0.16.4
-tokenizers==0.13.3
-faiss-cpu==1.7.4
-
-# Data Processing
-numpy==1.24.3
-pandas==2.0.0
+# Data Processing (Python 3.12 compatible)
+numpy>=1.26.0
+pandas>=2.0.0
 
 # Visualization
-plotly==5.17.0
+plotly>=5.17.0
 
 # Environment & Config
-python-dotenv==1.0.0
+python-dotenv>=1.0.0
 
 # Docker
 gunicorn>=21.2.0
@@ -37,3 +36,12 @@ fpdf2>=2.7.0
 rouge-score>=0.1.2
 bert-score>=0.3.13
 nltk>=3.8.0
+
+# Document Processing
+PyMuPDF>=1.23.0
+pdfplumber>=0.10.0
+openpyxl>=3.0.0
+pytesseract>=0.3.10
+
+# Vector Database
+chromadb>=0.4.0

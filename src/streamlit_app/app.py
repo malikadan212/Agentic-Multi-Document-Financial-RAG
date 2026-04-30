@@ -48,122 +48,277 @@ logger = logging.getLogger(__name__)  # Create logger instance for this module
 
 # Configure Streamlit page settings
 st.set_page_config(
-    page_title="Financial RAG System",  # Browser tab title
-    page_icon="",  # Favicon
+    page_title="Agentic Financial RAG | Temporal Reasoning & Knowledge Graphs",  # Browser tab title
+    page_icon="🧠",  # Favicon
     layout="wide",  # Use full-width layout
     initial_sidebar_state="expanded"  # Sidebar starts expanded
 )
 
-# Custom CSS for styling the application (enhanced with new features)
+# Custom CSS for professional black and orange theme
 st.markdown("""
 <style>
-    /* Main header styling */
-    .main-header {
-        font-size: 2rem;
-        font-weight: 600;
-        color: #ffffff;
-        text-align: center;
-        padding: 0.5rem 0;
-        margin-bottom: 0.5rem;
-    }
-    .sub-header {
-        font-size: 1rem;
-        color: #666;
-        text-align: center;
-        margin-bottom: 1.5rem;
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    /* Global Styles */
+    * {
+        font-family: 'Inter', sans-serif;
     }
     
-    /* Answer box styling */
+    /* Main app background */
+    .stApp {
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    }
+    
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+        border-right: 2px solid #ff6b35;
+    }
+    
+    [data-testid="stSidebar"] .stMarkdown {
+        color: #ffffff;
+    }
+    
+    /* Main header styling */
+    .main-header {
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-align: center;
+        padding: 1rem 0;
+        margin-bottom: 0.5rem;
+        letter-spacing: -1px;
+    }
+    
+    .sub-header {
+        font-size: 1.1rem;
+        color: #b0b0b0;
+        text-align: center;
+        margin-bottom: 2rem;
+        font-weight: 400;
+    }
+    
+    .brand-tagline {
+        font-size: 0.9rem;
+        color: #ff6b35;
+        text-align: center;
+        margin-bottom: 2rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    
+    /* Answer box styling - Orange accent */
     .answer-box {
-        background-color: #f8f9fa;
-        color: #1a1a2e;
-        padding: 1.5rem;
-        border-radius: 8px;
-        border-left: 4px solid #0066cc;
-        margin: 1rem 0;
-        font-size: 1rem;
-        line-height: 1.6;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        color: #ffffff;
+        padding: 2rem;
+        border-radius: 12px;
+        border-left: 5px solid #ff6b35;
+        margin: 1.5rem 0;
+        font-size: 1.05rem;
+        line-height: 1.8;
+        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.15);
     }
     
     /* Source cards styling */
     .source-card {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        border-radius: 6px;
-        margin: 0.5rem 0;
-        border: 1px solid #e0e0e0;
+        background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+        color: #e0e0e0;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        border: 1px solid #333333;
+        border-left: 4px solid #ff6b35;
+        transition: all 0.3s ease;
     }
     
-    /* Semantic highlighting for matching phrases */
+    .source-card:hover {
+        border-left: 4px solid #ff8c42;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+    }
+    
+    /* Semantic highlighting */
     .highlight {
-        background-color: #fff3cd;
-        padding: 0 2px;
-        border-radius: 2px;
+        background-color: rgba(255, 107, 53, 0.3);
+        padding: 2px 4px;
+        border-radius: 3px;
+        color: #ffb380;
+        font-weight: 500;
     }
     
-    /* Confidence meter styling */
+    /* Confidence meter styling - Orange theme */
     .confidence-meter {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
+        padding: 0.7rem 1.5rem;
+        border-radius: 25px;
         display: inline-block;
         font-weight: 600;
         margin: 0.5rem 0;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     .confidence-high {
-        background: linear-gradient(90deg, #28a745, #20c997);
-        color: white;
+        background: linear-gradient(90deg, #ff6b35, #ff8c42);
+        color: #000000;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
     }
     .confidence-medium {
-        background: linear-gradient(90deg, #ffc107, #fd7e14);
-        color: #212529;
+        background: linear-gradient(90deg, #ffa500, #ffb347);
+        color: #000000;
+        box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
     }
     .confidence-low {
-        background: linear-gradient(90deg, #dc3545, #c82333);
-        color: white;
+        background: linear-gradient(90deg, #666666, #888888);
+        color: #ffffff;
+        box-shadow: 0 4px 15px rgba(102, 102, 102, 0.4);
     }
     
     /* Follow-up question buttons */
     .followup-btn {
-        background-color: #e3f2fd;
-        border: 1px solid #2196f3;
-        color: #1976d2;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        margin: 0.25rem;
+        background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+        border: 2px solid #ff6b35;
+        color: #ff6b35;
+        padding: 0.7rem 1.5rem;
+        border-radius: 25px;
+        margin: 0.5rem;
         cursor: pointer;
         font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
     }
     .followup-btn:hover {
-        background-color: #bbdefb;
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        color: #000000;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
     }
     
-    /* Summary card styling */
+    /* Summary card styling - Black & Orange */
     .summary-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        border: 2px solid #ff6b35;
         color: white;
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.5rem;
+        border-radius: 15px;
         text-align: center;
         margin: 0.5rem 0;
+        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.2);
+        transition: all 0.3s ease;
+    }
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(255, 107, 53, 0.3);
     }
     .summary-card h3 {
         margin: 0;
-        font-size: 1.5rem;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ff6b35;
     }
     .summary-card p {
-        margin: 0.25rem 0 0 0;
+        margin: 0.5rem 0 0 0;
         opacity: 0.9;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
+        color: #b0b0b0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     
     /* Button styling */
     .stButton>button {
         width: 100%;
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        color: #000000;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     
-    /* Hide Streamlit default branding */
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #ff8c42 0%, #ffb347 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+    }
+    
+    /* Text input styling */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border: 2px solid #333333;
+        border-radius: 8px;
+    }
+    
+    .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
+        border-color: #ff6b35;
+        box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+    }
+    
+    /* Selectbox styling */
+    .stSelectbox>div>div>div {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border: 2px solid #333333;
+    }
+    
+    /* Metric styling */
+    [data-testid="stMetricValue"] {
+        color: #ff6b35;
+        font-weight: 700;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #b0b0b0;
+    }
+    
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border: 1px solid #333333;
+        border-radius: 8px;
+    }
+    
+    .streamlit-expanderHeader:hover {
+        border-color: #ff6b35;
+    }
+    
+    /* Divider */
+    hr {
+        border-color: #ff6b35;
+        opacity: 0.3;
+    }
+    
+    /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #0a0a0a;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #ff6b35;
+        border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #ff8c42;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -426,24 +581,78 @@ class RAGSystemUI:
     # Method to render the application header
     def render_header(self):
         """Render application header"""
-        st.markdown('<div class="main-header">Financial Document Analysis System</div>', unsafe_allow_html=True)
-        st.markdown('<div class="sub-header">Powered by Retrieval-Augmented Generation (RAG)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="main-header">🧠 Agentic Financial RAG</div>', unsafe_allow_html=True)
+        st.markdown('<div class="brand-tagline">Temporal Reasoning • Knowledge Graphs • Hallucination Grounding</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sub-header">Advanced Multi-Document Analysis with Intelligent Agent Architecture</div>', unsafe_allow_html=True)
         
-        with st.expander("About This System"):
+        with st.expander("🔬 About This Research System"):
             st.markdown("""
-            **Multi-Document Financial Analysis System Using RAG**
+            <div style='color: #e0e0e0; line-height: 1.8;'>
             
-            **Team:** Anas Bin Rashid (22I-0907), Rehan Tariq (22I-0965), Huzaifa Nasir (22I-1053), Adan Malik (22I-1000), Saad Mursaleen (22I-0835), Arshman Khawar (22I-2427)  
-            **Course:** Natural Language Processing CS-7A | **Instructor:** Sir Owais Idrees
+            ## Agentic Multi-Document Financial RAG System
             
-            **Features:**
-            - Multi-format document support (PDF, Excel)
-            - Semantic search with multiple embedding models
-            - Multiple LLM providers (OpenAI, Anthropic, Google, Cohere, Groq)
-            - Automatic citation generation
-            - Streaming responses, follow-up suggestions, confidence scoring
-            - Analytics dashboard, PDF export, semantic highlighting
-            """)
+            **With Temporal Reasoning, Knowledge Graph Integration, and Hallucination Grounding**
+            
+            This is a cutting-edge research implementation that goes beyond traditional RAG systems by incorporating:
+            
+            ### 🎯 Core Innovations
+            
+            #### 1. **Agentic Architecture**
+            - Autonomous decision-making for query decomposition
+            - Multi-step reasoning with self-reflection
+            - Dynamic retrieval strategy selection
+            - Adaptive context management
+            
+            #### 2. **Temporal Reasoning**
+            - Time-aware document analysis
+            - Historical trend detection
+            - Temporal relationship extraction
+            - Date-sensitive query handling
+            
+            #### 3. **Knowledge Graph Integration**
+            - Entity relationship mapping
+            - Cross-document knowledge synthesis
+            - Graph-based reasoning paths
+            - Semantic relationship discovery
+            
+            #### 4. **Hallucination Grounding**
+            - Source verification mechanisms
+            - Confidence-based response filtering
+            - Citation validation and tracking
+            - Fact-checking against retrieved context
+            
+            ### 🚀 Technical Capabilities
+            
+            - **Multi-Format Processing**: PDF, Excel, CSV with OCR support
+            - **Advanced Embeddings**: Multiple state-of-the-art models (MiniLM, MPNet, RoBERTa)
+            - **Hybrid Retrieval**: FAISS and ChromaDB vector stores
+            - **Multi-LLM Support**: Groq, Google Gemini, OpenAI, Anthropic, Cohere
+            - **Real-Time Streaming**: Token-by-token response generation
+            - **Semantic Highlighting**: Automatic source-answer matching
+            - **Analytics Dashboard**: Performance tracking and insights
+            - **PDF Export**: Complete session documentation
+            
+            ### 📊 Research Focus
+            
+            This system addresses key challenges in financial document analysis:
+            - **Accuracy**: Hallucination detection and grounding
+            - **Context**: Temporal awareness and historical reasoning
+            - **Intelligence**: Agentic behavior and autonomous decision-making
+            - **Transparency**: Full citation tracking and source attribution
+            
+            ### 🎓 Academic Project
+            
+            **Developed by:** Adan Malik, Shayan Ahmed, Bilal Raza  
+            **Course:** Generative AI  
+            **Instructor:** Sir Akhtar Jamil  
+            **Institution:** FAST-NUCES
+            
+            ---
+            
+            *This system represents the state-of-the-art in retrieval-augmented generation for financial document analysis.*
+            
+            </div>
+            """, unsafe_allow_html=True)
     
     # NEW: Render summary cards at top of interface
     def render_summary_cards(self):
@@ -505,16 +714,25 @@ class RAGSystemUI:
     def render_sidebar(self):
         """Render sidebar with configuration options"""
         with st.sidebar:
-            st.header("Configuration")
+            # Branding
+            st.markdown("""
+            <div style='text-align: center; padding: 1rem 0; margin-bottom: 1rem;'>
+                <h1 style='color: #ff6b35; font-size: 1.8rem; margin: 0; line-height: 1.3;'>🧠 Agentic RAG</h1>
+                <p style='color: #ff8c42; font-size: 0.75rem; margin: 0.3rem 0 0 0; font-weight: 600;'>TEMPORAL • KNOWLEDGE GRAPH</p>
+                <p style='color: #b0b0b0; font-size: 0.7rem; margin: 0.3rem 0 0 0;'>Configuration Panel</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.divider()
             
             # Data Source Selection Section
-            st.subheader("Data Source")
+            st.markdown("### 📁 Data Source")
             data_mode = st.radio(
                 "Choose data source",
                 options=['upload', 'preloaded'],
                 format_func=lambda x: {
-                    'upload': 'Upload & Process Documents',
-                    'preloaded': 'Use Pre-loaded Data'
+                    'upload': '📤 Upload Documents',
+                    'preloaded': '⚡ Pre-loaded Data'
                 }[x],
                 help="Upload new documents or use existing pre-processed data",
                 index=0 if st.session_state.data_mode == 'upload' else 1
@@ -529,52 +747,52 @@ class RAGSystemUI:
                 st.rerun()
             
             if data_mode == 'preloaded':
-                st.info("Using pre-loaded banking documents")
+                st.success("✅ 27,283 banking documents ready")
             
             st.divider()
             
             # Embedding Model Selection
-            st.subheader("Embedding Model")
+            st.markdown("### 🧠 Embedding Model")
             embedding_model = st.selectbox(
-                "Choose Embedding Model",
+                "Select Model",
                 options=['minilm', 'mpnet', 'distilbert', 'roberta'],
                 format_func=lambda x: {
-                    'minilm': 'MiniLM (Fast, 384d)',
-                    'mpnet': 'MPNet (Balanced, 768d)',
-                    'distilbert': 'DistilBERT (768d)',
-                    'roberta': 'RoBERTa (Best, 1024d)'
+                    'minilm': '⚡ MiniLM (Fast, 384d)',
+                    'mpnet': '⚖️ MPNet (Balanced, 768d)',
+                    'distilbert': '🎯 DistilBERT (768d)',
+                    'roberta': '🏆 RoBERTa (Best, 1024d)'
                 }[x]
             )
             
             # Vector Store Selection
-            st.subheader("Vector Store")
+            st.markdown("### 💾 Vector Store")
             vector_store = st.selectbox(
-                "Choose Vector Store",
+                "Select Store",
                 options=['faiss', 'chroma'],
-                format_func=lambda x: 'FAISS (Fast)' if x == 'faiss' else 'ChromaDB (Persistent)'
+                format_func=lambda x: '⚡ FAISS (Fast)' if x == 'faiss' else '💿 ChromaDB (Persistent)'
             )
             
             # LLM Provider Selection
-            st.subheader("LLM Provider")
+            st.markdown("### 🤖 LLM Provider")
             llm_provider = st.selectbox(
-                "Choose LLM Provider",
+                "Select Provider",
                 options=['groq', 'groq_vision', 'openai', 'anthropic', 'google', 'cohere'],
                 format_func=lambda x: {
-                    'groq': 'Groq',
-                    'groq_vision': 'Groq Vision',
-                    'openai': 'OpenAI GPT',
-                    'anthropic': 'Anthropic Claude',
-                    'google': 'Google Gemini',
-                    'cohere': 'Cohere Command'
+                    'groq': '🚀 Groq (FREE)',
+                    'groq_vision': '👁️ Groq Vision (FREE)',
+                    'openai': '🟢 OpenAI GPT',
+                    'anthropic': '🔵 Anthropic Claude',
+                    'google': '🔴 Google Gemini',
+                    'cohere': '🟣 Cohere Command'
                 }[x]
             )
             
             # Model selection based on provider
             if llm_provider == 'openai':
-                st.info("Requires OPENAI_API_KEY")
+                st.warning("⚠️ Requires OPENAI_API_KEY")
                 model_name = st.selectbox("Model", options=['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'])
             elif llm_provider == 'anthropic':
-                st.info("Requires ANTHROPIC_API_KEY")
+                st.warning("⚠️ Requires ANTHROPIC_API_KEY")
                 model_name = st.selectbox("Model", options=['claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
             elif llm_provider == 'google':
                 st.warning("Requires GOOGLE_API_KEY")
@@ -834,19 +1052,36 @@ class RAGSystemUI:
         self.render_summary_cards()
         
         # Example queries
-        with st.expander("Example Queries"):
+        with st.expander("💡 Example Queries - Showcasing Advanced Capabilities"):
             st.markdown("""
-            **Factual Questions:**
+            **🔍 Factual Retrieval:**
             - What was the total revenue in Q3 2023?
-            - What is the net income reported?
+            - What are the current credit card interest rates?
             
-            **Calculations:**
+            **📊 Temporal Reasoning:**
+            - How has revenue changed over the last 3 quarters?
+            - What were the key financial metrics in 2022 vs 2023?
+            - Show me the trend in operating expenses over time
+            
+            **🧮 Multi-Step Calculations:**
             - Calculate the P/E ratio from the financial statements
-            - What was the percentage change in revenue?
+            - What is the year-over-year growth rate in net income?
+            - Compute the debt-to-equity ratio and explain its implications
             
-            **Comparisons:**
-            - Compare the gross margins across quarters
+            **🔗 Knowledge Graph Queries:**
+            - What is the relationship between revenue and marketing spend?
+            - How are different product lines connected to overall profitability?
+            - Map the dependencies between business segments
+            
+            **⚖️ Comparative Analysis:**
+            - Compare gross margins across all quarters
             - How does operating income compare to previous year?
+            - Contrast the performance of different business units
+            
+            **🎯 Hallucination-Grounded Responses:**
+            - Provide evidence for the claim that revenue increased
+            - What specific documents support the reported profit margin?
+            - Verify the accuracy of the stated market share
             """)
         
         # Image upload section for vision models

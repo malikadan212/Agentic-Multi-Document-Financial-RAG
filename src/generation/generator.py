@@ -13,14 +13,48 @@ import logging  # For logging functionality
 import re  # For regular expressions (citation extraction)
 from pathlib import Path  # For path manipulation
 
-# Import third-party LLM API libraries
-import openai  # OpenAI API client
-from anthropic import Anthropic  # Anthropic Claude API client
-# Note: google.generativeai is deprecated, but google.genai requires significant code changes
-# TODO: Migrate to google.genai when ready - see https://github.com/google-gemini/deprecated-generative-ai-python
-import google.generativeai as genai  # Google Gemini API client (deprecated, migrate to google.genai)
-import cohere  # Cohere API client
-from groq import Groq  # Groq API client
+# Configure logging FIRST (before any imports that use logger)
+logging.basicConfig(level=logging.INFO)  # Set default logging level to INFO
+logger = logging.getLogger(__name__)  # Create logger instance for this module
+
+# Import third-party LLM API libraries (optional - only needed if using that provider)
+try:
+    import openai  # OpenAI API client
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    logger.warning("OpenAI not installed. Install with: pip install openai")
+
+try:
+    from anthropic import Anthropic  # Anthropic Claude API client
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+    logger.warning("Anthropic not installed. Install with: pip install anthropic")
+
+try:
+    # Note: google.generativeai is deprecated, but google.genai requires significant code changes
+    # TODO: Migrate to google.genai when ready - see https://github.com/google-gemini/deprecated-generative-ai-python
+    import google.generativeai as genai  # Google Gemini API client (deprecated, migrate to google.genai)
+    GOOGLE_AVAILABLE = True
+except ImportError:
+    GOOGLE_AVAILABLE = False
+    logger.warning("Google Generative AI not installed. Install with: pip install google-generativeai")
+
+try:
+    import cohere  # Cohere API client
+    COHERE_AVAILABLE = True
+except ImportError:
+    COHERE_AVAILABLE = False
+    logger.warning("Cohere not installed. Install with: pip install cohere")
+
+try:
+    from groq import Groq  # Groq API client
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
+    logger.warning("Groq not installed. Install with: pip install groq")
+
 from dotenv import load_dotenv  # For loading environment variables
 
 # Load environment variables from .env file
@@ -33,10 +67,6 @@ if not _env_path.exists():
         _env_path = fallback  # Use .env.example instead
 # Load environment variables from the determined path
 load_dotenv(dotenv_path=_env_path, override=False)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)  # Set default logging level to INFO
-logger = logging.getLogger(__name__)  # Create logger instance for this module
 
 
 # Data class for generation configuration
@@ -150,6 +180,8 @@ class OpenAILLM(BaseLLM):
     
     # Initialize OpenAI client
     def __init__(self, model_name: str = 'gpt-3.5-turbo', config: GenerationConfig = None):
+        if not OPENAI_AVAILABLE:
+            raise ImportError("OpenAI library not installed. Install with: pip install openai")
         super().__init__(model_name, config or GenerationConfig())  # Call parent constructor
         openai.api_key = os.getenv('OPENAI_API_KEY')  # Get API key from environment
         if not openai.api_key:
@@ -217,6 +249,8 @@ class AnthropicLLM(BaseLLM):
     
     # Initialize Anthropic client
     def __init__(self, model_name: str = 'claude-3-sonnet-20240229', config: GenerationConfig = None):
+        if not ANTHROPIC_AVAILABLE:
+            raise ImportError("Anthropic library not installed. Install with: pip install anthropic")
         super().__init__(model_name, config or GenerationConfig())  # Call parent constructor
         api_key = os.getenv('ANTHROPIC_API_KEY')  # Get API key from environment
         if not api_key:
@@ -281,6 +315,8 @@ class GoogleLLM(BaseLLM):
     
     # Initialize Google Gemini client
     def __init__(self, model_name: str = 'gemini-1.5-flash', config: GenerationConfig = None):
+        if not GOOGLE_AVAILABLE:
+            raise ImportError("Google Generative AI library not installed. Install with: pip install google-generativeai")
         super().__init__(model_name, config or GenerationConfig())  # Call parent constructor
         api_key = os.getenv('GOOGLE_API_KEY')  # Get API key from environment
         if not api_key:
@@ -382,6 +418,8 @@ class CohereLLM(BaseLLM):
     
     # Initialize Cohere client
     def __init__(self, model_name: str = 'command', config: GenerationConfig = None):
+        if not COHERE_AVAILABLE:
+            raise ImportError("Cohere library not installed. Install with: pip install cohere")
         super().__init__(model_name, config or GenerationConfig())  # Call parent constructor
         api_key = os.getenv('COHERE_API_KEY')  # Get API key from environment
         if not api_key:
@@ -433,6 +471,8 @@ class GroqLLM(BaseLLM):
 
     # Initialize Groq client
     def __init__(self, model_name: str = "llama-3.1-8b-instant", config: GenerationConfig = None):
+        if not GROQ_AVAILABLE:
+            raise ImportError("Groq library not installed. Install with: pip install groq")
         super().__init__(model_name, config or GenerationConfig())  # Call parent constructor
         api_key = os.getenv("GROQ_API_KEY")  # Get API key from environment
         if not api_key:
@@ -561,6 +601,8 @@ class GroqVisionLLM(BaseLLM):
             model_name: Vision model to use (default: llama-3.2-11b-vision-preview)
             config: Generation configuration
         """
+        if not GROQ_AVAILABLE:
+            raise ImportError("Groq library not installed. Install with: pip install groq")
         super().__init__(model_name, config or GenerationConfig())
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -697,15 +739,19 @@ class RAGGenerator:
     Supports multiple LLM providers for comparison
     """
     
-    # Mapping of provider names to their implementation classes
-    LLM_PROVIDERS = {
-        'openai': OpenAILLM,  # OpenAI provider
-        'anthropic': AnthropicLLM,  # Anthropic provider
-        'google': GoogleLLM,  # Google provider
-        'cohere': CohereLLM,  # Cohere provider
-        'groq': GroqLLM,  # Groq provider
-        'groq_vision': GroqVisionLLM,  # Groq Vision provider (Llama 3.2 Vision)
-    }
+    # Mapping of provider names to their implementation classes (only include available ones)
+    LLM_PROVIDERS = {}
+    if OPENAI_AVAILABLE:
+        LLM_PROVIDERS['openai'] = OpenAILLM
+    if ANTHROPIC_AVAILABLE:
+        LLM_PROVIDERS['anthropic'] = AnthropicLLM
+    if GOOGLE_AVAILABLE:
+        LLM_PROVIDERS['google'] = GoogleLLM
+    if COHERE_AVAILABLE:
+        LLM_PROVIDERS['cohere'] = CohereLLM
+    if GROQ_AVAILABLE:
+        LLM_PROVIDERS['groq'] = GroqLLM
+        LLM_PROVIDERS['groq_vision'] = GroqVisionLLM
     
     # Initialize RAG Generator
     def __init__(self, 

@@ -1,6 +1,40 @@
-# Multi-Document Financial Analysis System
+# Agentic Multi-Document Financial RAG System
 
-A production-ready Retrieval-Augmented Generation (RAG) system designed for intelligent financial document analysis. The system supports multiple document formats, various embedding models, multiple LLM providers, multimodal capabilities, and includes comprehensive evaluation metrics.
+**With Temporal Reasoning, Knowledge Graph Integration, and Hallucination Grounding**
+
+A state-of-the-art Retrieval-Augmented Generation (RAG) system that goes beyond traditional approaches by incorporating agentic behavior, temporal reasoning, knowledge graph integration, and hallucination grounding mechanisms for accurate financial document analysis.
+
+---
+
+## 🎯 Research Innovation
+
+This system represents a significant advancement in RAG technology by addressing critical challenges in financial document analysis:
+
+### Core Innovations
+
+1. **Agentic Architecture**
+   - Autonomous query decomposition and planning
+   - Multi-step reasoning with self-reflection
+   - Dynamic retrieval strategy selection
+   - Adaptive context management
+
+2. **Temporal Reasoning**
+   - Time-aware document analysis
+   - Historical trend detection and comparison
+   - Temporal relationship extraction
+   - Date-sensitive query handling
+
+3. **Knowledge Graph Integration**
+   - Entity relationship mapping across documents
+   - Cross-document knowledge synthesis
+   - Graph-based reasoning paths
+   - Semantic relationship discovery
+
+4. **Hallucination Grounding**
+   - Source verification mechanisms
+   - Confidence-based response filtering
+   - Citation validation and tracking
+   - Fact-checking against retrieved context
 
 ---
 
@@ -637,3 +671,20 @@ Contributions are welcome. Please ensure that:
 2. New features include appropriate tests
 3. Documentation is updated for any API changes
 4. All tests pass before submitting pull requests
+
+---
+
+## 🎓 Academic Project
+
+**Developed by:** Adan Malik, Shayan Ahmed, Bilal Raza  
+**Course:** Generative AI  
+**Instructor:** Sir Akhtar Jamil  
+**Institution:** FAST-NUCES
+
+This project represents advanced research in Retrieval-Augmented Generation systems with a focus on agentic behavior, temporal reasoning, knowledge graph integration, and hallucination grounding for financial document analysis.
+
+---
+
+## 📄 License
+
+This project is developed for academic purposes as part of the Generative AI course at FAST-NUCES.
