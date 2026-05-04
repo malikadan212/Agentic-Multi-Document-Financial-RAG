@@ -39,14 +39,21 @@ class DocumentChunk:
         content: The actual text content
         metadata: Dictionary containing source info (doc_name, page, section, etc.)
         chunk_id: Unique identifier for the chunk
+        temporal_entities: List of temporal entities found in this chunk
+        valid_from: Start date of validity period (ISO format: YYYY-MM-DD)
+        valid_to: End date of validity period (ISO format: YYYY-MM-DD)
     """
     content: str  # The text content of the chunk
     metadata: Dict[str, Any]  # Metadata about the chunk (source, page, etc.)
     chunk_id: str  # Unique identifier for the chunk
+    temporal_entities: Optional[List] = None  # List of TemporalEntity objects
+    valid_from: Optional[str] = None  # Validity start date
+    valid_to: Optional[str] = None  # Validity end date
     
     # String representation for debugging
     def __repr__(self):
-        return f"Chunk({self.chunk_id}, len={len(self.content)}, page={self.metadata.get('page')})"
+        temporal_info = f", temporal={len(self.temporal_entities) if self.temporal_entities else 0}" if self.temporal_entities else ""
+        return f"Chunk({self.chunk_id}, len={len(self.content)}, page={self.metadata.get('page')}{temporal_info})"
 
 
 # Data class to represent an image chunk from documents (for multimodal RAG)
@@ -466,11 +473,12 @@ class ExcelProcessor:
 class DocumentChunker:
     """
     Intelligent chunking strategy for financial documents
-    Implements semantic chunking with overlap
+    Implements semantic chunking with overlap and temporal extraction
     """
     
     # Initialize chunker with parameters
-    def __init__(self, chunk_size: int = 512, overlap: int = 50, min_chunk_length: int = 30):
+    def __init__(self, chunk_size: int = 512, overlap: int = 50, min_chunk_length: int = 30, 
+                 extract_temporal: bool = True):
         """
         Initialize chunker
         
@@ -478,23 +486,53 @@ class DocumentChunker:
             chunk_size: Maximum tokens per chunk
             overlap: Number of overlapping tokens between chunks
             min_chunk_length: Minimum character length for a chunk
+            extract_temporal: Whether to extract temporal entities from chunks
         """
         self.chunk_size = chunk_size  # Maximum size of each chunk
         self.overlap = overlap  # Overlap between consecutive chunks
         self.min_chunk_length = min_chunk_length  # Minimum acceptable chunk length
+        self.extract_temporal = extract_temporal  # Whether to extract temporal entities
+        
+        # Initialize temporal extractor if needed
+        self.temporal_extractor = None
+        if self.extract_temporal:
+            try:
+                # Import here to avoid circular dependency
+                from temporal import TemporalEntityExtractor
+                self.temporal_extractor = TemporalEntityExtractor(use_spacy=False)
+                logger.info("✅ Temporal extraction enabled for chunking")
+            except ImportError as e:
+                logger.warning(f"Could not import temporal extractor: {e}")
+                self.extract_temporal = False
     
     # Method to chunk documents
-    def chunk_documents(self, documents: List[Dict]) -> List[DocumentChunk]:
+    def chunk_documents(self, documents: List[Dict], doc_filename: str = None) -> List[DocumentChunk]:
         """
         Chunk documents into smaller pieces with metadata preservation
+        Extracts temporal entities from each chunk
         
         Args:
             documents: List of document dictionaries from processors
+            doc_filename: Original document filename (for temporal extraction)
             
         Returns:
-            List of DocumentChunk objects
+            List of DocumentChunk objects with temporal metadata
         """
         all_chunks = []  # List to store all chunks
+        
+        # Extract document-level temporal metadata from filename if available
+        doc_temporal_metadata = None
+        if self.extract_temporal and self.temporal_extractor and doc_filename:
+            try:
+                # Get full document text for temporal extraction
+                full_text = " ".join([doc.get('text', '') for doc in documents])
+                doc_temporal_metadata = self.temporal_extractor.extract_document_metadata(
+                    text=full_text[:5000],  # Use first 5000 chars for efficiency
+                    filename=doc_filename
+                )
+                logger.info(f"📅 Extracted document temporal metadata: valid_from={doc_temporal_metadata.valid_from}, valid_to={doc_temporal_metadata.valid_to}")
+            except Exception as e:
+                logger.warning(f"Error extracting document temporal metadata: {e}")
         
         # Process each document
         for doc in documents:
@@ -514,20 +552,48 @@ class DocumentChunker:
             for idx, chunk_text in enumerate(chunks):
                 # Only create chunks with sufficient content
                 if chunk_text and len(chunk_text.strip()) >= self.min_chunk_length:
+                    # Extract temporal entities from this chunk
+                    chunk_temporal_entities = None
+                    if self.extract_temporal and self.temporal_extractor:
+                        try:
+                            chunk_temporal_entities = self.temporal_extractor.extract_from_text(chunk_text)
+                        except Exception as e:
+                            logger.debug(f"Error extracting temporal entities from chunk: {e}")
+                    
+                    # Determine chunk validity period
+                    # Use document-level validity if available, otherwise try to infer from chunk
+                    valid_from = None
+                    valid_to = None
+                    if doc_temporal_metadata:
+                        valid_from = doc_temporal_metadata.valid_from
+                        valid_to = doc_temporal_metadata.valid_to
+                    elif chunk_temporal_entities:
+                        # Try to find a date range or quarter in the chunk
+                        for entity in chunk_temporal_entities:
+                            if entity.start_date and entity.end_date:
+                                valid_from = entity.start_date
+                                valid_to = entity.end_date
+                                break
+                    
                     chunk = DocumentChunk(
                         content=chunk_text,  # Chunk text content
                         metadata={
                             'doc_name': doc_name,  # Source document name
                             'page': page_num,  # Page number
                             'chunk_index': idx,  # Index within document
-                            'source_type': 'pdf' if page_num > 0 else 'excel'  # Document type
+                            'source_type': 'pdf' if page_num > 0 else 'excel',  # Document type
+                            'has_temporal_entities': len(chunk_temporal_entities) > 0 if chunk_temporal_entities else False
                         },
-                        chunk_id=f"{doc_name}_p{page_num}_c{idx}"  # Unique ID
+                        chunk_id=f"{doc_name}_p{page_num}_c{idx}",  # Unique ID
+                        temporal_entities=chunk_temporal_entities,  # Temporal entities
+                        valid_from=valid_from,  # Validity start
+                        valid_to=valid_to  # Validity end
                     )
                     all_chunks.append(chunk)  # Add to list
         
-        # Log completion
-        logger.info(f"Created {len(all_chunks)} chunks from {len(documents)} documents")
+        # Log completion with temporal stats
+        temporal_chunks = sum(1 for c in all_chunks if c.temporal_entities and len(c.temporal_entities) > 0)
+        logger.info(f"Created {len(all_chunks)} chunks from {len(documents)} documents ({temporal_chunks} with temporal entities)")
         return all_chunks  # Return list of chunks
     
     # Private method for semantic chunking
@@ -613,63 +679,73 @@ class DocumentPipeline:
     # Method to process all documents in a directory
     def process_directory(self, directory: str) -> List[DocumentChunk]:
         """
-        Process all documents in a directory
+        Process all documents in a directory with temporal extraction
         
         Args:
             directory: Path to directory containing documents
             
         Returns:
-            List of processed document chunks
+            List of processed document chunks with temporal metadata
         """
         dir_path = Path(directory)  # Convert to Path object
-        all_documents = []  # List to store all document segments
+        all_chunks = []  # List to store all chunks from all files
         
         # Process PDF files
         for pdf_file in dir_path.glob("**/*.pdf"):  # Recursively find PDFs
             try:
+                logger.info(f"Processing PDF: {pdf_file.name}")
                 # Extract text pages from PDF
                 pages = self.pdf_processor.extract_text(str(pdf_file))
                 # Extract tables from PDF
                 tables = self.pdf_processor.extract_tables(str(pdf_file))
-                # Add to documents list
-                all_documents.extend(pages)
-                all_documents.extend(tables)
+                # Combine pages and tables
+                file_documents = pages + tables
+                
+                # Chunk this file's documents with filename for temporal extraction
+                file_chunks = self.chunker.chunk_documents(file_documents, doc_filename=pdf_file.name)
+                all_chunks.extend(file_chunks)
             except Exception as e:
                 logger.error(f"Failed to process {pdf_file}: {e}")  # Log error but continue
         
         # Process Excel files
         for excel_file in dir_path.glob("**/*.xlsx"):  # Recursively find Excel files
             try:
+                logger.info(f"Processing Excel: {excel_file.name}")
                 # Process Excel file
                 sheets = self.excel_processor.process_excel(str(excel_file))
-                # Add to documents list
-                all_documents.extend(sheets)
+                # Chunk this file's sheets with filename
+                file_chunks = self.chunker.chunk_documents(sheets, doc_filename=excel_file.name)
+                all_chunks.extend(file_chunks)
             except Exception as e:
                 logger.error(f"Failed to process {excel_file}: {e}")  # Log error but continue
         
         # Process CSV files
         for csv_file in dir_path.glob("**/*.csv"):  # Recursively find CSV files
             try:
+                logger.info(f"Processing CSV: {csv_file.name}")
                 # Read CSV file
                 df = pd.read_csv(str(csv_file))
-                # Add CSV content to documents list
-                all_documents.append({
+                # Create document dict
+                csv_doc = [{
                     'text': df.to_string(),  # Convert DataFrame to string
                     'doc_name': csv_file.stem,  # File name without extension
                     'page_num': 0  # CSV doesn't have pages
-                })
+                }]
+                # Chunk with filename
+                file_chunks = self.chunker.chunk_documents(csv_doc, doc_filename=csv_file.name)
+                all_chunks.extend(file_chunks)
             except Exception as e:
                 logger.error(f"Failed to process {csv_file}: {e}")  # Log error but continue
         
-        # Log document collection summary
-        logger.info(f"Collected {len(all_documents)} document segments")
+        # Log pipeline completion with temporal statistics
+        temporal_chunks = sum(1 for c in all_chunks if c.temporal_entities and len(c.temporal_entities) > 0)
+        chunks_with_validity = sum(1 for c in all_chunks if c.valid_from and c.valid_to)
         
-        # Chunk all collected documents
-        chunks = self.chunker.chunk_documents(all_documents)
+        logger.info(f"✅ Pipeline complete: {len(all_chunks)} total chunks from {directory}")
+        logger.info(f"   📅 {temporal_chunks} chunks with temporal entities")
+        logger.info(f"   📅 {chunks_with_validity} chunks with validity periods")
         
-        # Log pipeline completion
-        logger.info(f"Pipeline complete: {len(chunks)} total chunks from {directory}")
-        return chunks  # Return list of chunks
+        return all_chunks  # Return list of chunks
     
     # Method to process documents with multimodal support (text + images)
     def process_directory_multimodal(self, directory: str, extract_images: bool = True):

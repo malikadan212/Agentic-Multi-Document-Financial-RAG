@@ -691,13 +691,21 @@ class RAGSystemUI:
                 """, unsafe_allow_html=True)
             
             with col4:
-                avg_time = 0
-                if st.session_state.analytics['query_times']:
-                    avg_time = sum(t[1] for t in st.session_state.analytics['query_times']) / len(st.session_state.analytics['query_times'])
+                # Count temporal chunks
+                temporal_count = 0
+                try:
+                    if hasattr(st.session_state.retriever, 'vector_store') and st.session_state.retriever.vector_store:
+                        if hasattr(st.session_state.retriever.vector_store, 'chunks'):
+                            chunks = st.session_state.retriever.vector_store.chunks
+                            temporal_count = sum(1 for c in chunks 
+                                               if hasattr(c, 'temporal_entities') and c.temporal_entities)
+                except:
+                    pass
+                
                 st.markdown(f"""
-                <div class="summary-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                    <h3>{avg_time:.1f}s</h3>
-                    <p>Avg Response Time</p>
+                <div class="summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h3>{temporal_count}</h3>
+                    <p>Temporal Chunks</p>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -826,10 +834,42 @@ class RAGSystemUI:
                 )
             
             # Generation Parameters
-            st.subheader("Parameters")
+            st.subheader("⚙️ Parameters")
             temperature = st.slider("Temperature", min_value=0.0, max_value=1.0, value=0.1, step=0.1)
             max_tokens = st.slider("Max Tokens", min_value=256, max_value=2048, value=1000, step=256)
             top_k = st.slider("Top-K Retrieval", min_value=1, max_value=10, value=5)
+            
+            st.divider()
+            
+            # NEW: Temporal Filtering
+            st.markdown("### 📅 Temporal Filtering")
+            enable_temporal = st.toggle(
+                "Enable Date Filtering",
+                value=False,
+                help="Filter results by date range"
+            )
+            
+            enable_temporal_scoring = st.toggle(
+                "Enable Temporal Scoring",
+                value=True,
+                help="Boost recent/relevant documents in ranking"
+            )
+            
+            temporal_config = {'enabled': False, 'scoring_enabled': enable_temporal_scoring}
+            if enable_temporal:
+                col1, col2 = st.columns(2)
+                with col1:
+                    from datetime import datetime
+                    start_date = st.date_input("From Date", value=datetime(2024, 1, 1))
+                with col2:
+                    end_date = st.date_input("To Date", value=datetime.now())
+                
+                temporal_config = {
+                    'enabled': True,
+                    'start_date': start_date.strftime('%Y-%m-%d'),
+                    'end_date': end_date.strftime('%Y-%m-%d'),
+                    'scoring_enabled': enable_temporal_scoring
+                }
             
             st.divider()
             
@@ -858,7 +898,8 @@ class RAGSystemUI:
                 'model_name': model_name,
                 'temperature': temperature,
                 'max_tokens': max_tokens,
-                'top_k': top_k
+                'top_k': top_k,
+                'temporal_filter': temporal_config
             }
     
     # Method to render document upload section
@@ -1062,6 +1103,9 @@ class RAGSystemUI:
             - How has revenue changed over the last 3 quarters?
             - What were the key financial metrics in 2022 vs 2023?
             - Show me the trend in operating expenses over time
+            - What were the credit card rates in Q2 2024?
+            - Show me documents valid for July-December 2025
+            - Find information effective from July 1, 2025
             
             **🧮 Multi-Step Calculations:**
             - Calculate the P/E ratio from the financial statements
@@ -1143,22 +1187,41 @@ class RAGSystemUI:
             start_time = time.time()
             
             try:
-                # Retrieve relevant chunks
-                raw_results = st.session_state.retriever.retrieve(query, top_k=config['top_k'])
+                # Import temporal retriever
+                from retrieval.temporal_retriever import TemporalAwareRetriever
                 
-                # Convert to standard format
-                if isinstance(st.session_state.retriever, PreloadedRetriever):
-                    retrieved_results = []
-                    for rank, result in enumerate(raw_results, start=1):
-                        retrieved_results.append(RetrievalResult(
-                            chunk_id=result.get('chunk_id', ''),
-                            content=result.get('content', ''),
-                            score=result.get('score', 0.0),
-                            metadata=result.get('metadata', {}),
-                            rank=rank
-                        ))
-                else:
-                    retrieved_results = raw_results
+                # Wrap retriever with temporal awareness if scoring enabled
+                retriever = st.session_state.retriever
+                if config.get('temporal_filter', {}).get('scoring_enabled', True):
+                    if not isinstance(retriever, TemporalAwareRetriever):
+                        retriever = TemporalAwareRetriever(
+                            base_retriever=retriever,
+                            enable_temporal_scoring=True,
+                            enable_query_expansion=True
+                        )
+                        logger.info("✅ Using temporal-aware retriever")
+                
+                # Retrieve relevant chunks
+                temporal_filter = config.get('temporal_filter', {})
+                raw_results = retriever.retrieve(
+                    query, 
+                    top_k=config['top_k'],
+                    temporal_filter=temporal_filter if temporal_filter.get('enabled') else None
+                )
+                
+                # Convert to standard format (only if not already RetrievalResult)
+                retrieved_results = raw_results
+                if raw_results and not isinstance(raw_results[0], RetrievalResult):
+                    if isinstance(st.session_state.retriever, PreloadedRetriever):
+                        retrieved_results = []
+                        for rank, result in enumerate(raw_results, start=1):
+                            retrieved_results.append(RetrievalResult(
+                                chunk_id=result.get('chunk_id', ''),
+                                content=result.get('content', ''),
+                                score=result.get('score', 0.0),
+                                metadata=result.get('metadata', {}),
+                                rank=rank
+                            ))
                 
                 retrieval_time = time.time() - start_time
                 
@@ -1405,6 +1468,43 @@ For observations from images, describe what you see clearly."""
                 )
                 st.markdown(f"{highlighted_content}...", unsafe_allow_html=True)
                 st.divider()
+        
+        # NEW: Temporal Information Display
+        with st.expander(f"📅 Temporal Information", expanded=False):
+            temporal_chunks = []
+            for result in retrieved_results:
+                has_temporal = False
+                if hasattr(result, 'temporal_entities') and result.temporal_entities:
+                    has_temporal = True
+                elif hasattr(result, 'valid_from') and result.valid_from:
+                    has_temporal = True
+                
+                if has_temporal:
+                    temporal_chunks.append(result)
+            
+            if temporal_chunks:
+                st.markdown(f"**{len(temporal_chunks)} chunks with temporal information**")
+                
+                for i, result in enumerate(temporal_chunks, 1):
+                    doc_name = result.metadata.get('doc_name', 'Unknown')
+                    page = result.metadata.get('page', '?')
+                    
+                    st.markdown(f"**Source {i}** - {doc_name} (Page {page})")
+                    
+                    # Show validity period
+                    if hasattr(result, 'valid_from') and result.valid_from:
+                        st.markdown(f"📆 **Valid Period**: `{result.valid_from}` to `{result.valid_to}`")
+                    
+                    # Show extracted entities
+                    if hasattr(result, 'temporal_entities') and result.temporal_entities:
+                        st.markdown("**Temporal Entities Found:**")
+                        for entity in result.temporal_entities[:5]:  # Show max 5
+                            entity_type = entity.temporal_type.value if hasattr(entity, 'temporal_type') else 'UNKNOWN'
+                            st.markdown(f"- `{entity.text}` ({entity_type}): {entity.start_date} → {entity.end_date}")
+                    
+                    st.divider()
+            else:
+                st.info("No temporal information found in retrieved sources")
         
         # Citations Analysis
         if response.citations:

@@ -1,0 +1,959 @@
+{
+  "total_files": 16,
+  "total_chunks": 162,
+  "chunks_with_temporal": 54,
+  "chunks_with_validity": 3,
+  "temporal_types": {
+    "YEAR": 17,
+    "DATE": 68,
+    "MONTH": 6,
+    "RELATIVE": 1
+  },
+  "files_analysis": [
+    {
+      "file": "HBL_Car_Loan_KFS_Jul-Dec_2025_(English)",
+      "chunks": 2,
+      "temporal_chunks": 1,
+      "validity_chunks": 2,
+      "entities": [
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        }
+      ]
+    },
+    {
+      "file": "HBL_CarLoan_SOBC_2025_Jul-Dec_-_English_",
+      "chunks": 57,
+      "temporal_chunks": 32,
+      "validity_chunks": 0,
+      "entities": [
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "August 19, 2009",
+          "type": "DATE",
+          "start": "2009-08-19",
+          "end": "2009-08-19",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        },
+        {
+          "text": "JULY 01, 2025",
+          "type": "DATE",
+          "start": "2025-07-01",
+          "end": "2025-07-01",
+          "confidence": 0.9
+        },
+        {
+          "text": "DECEMBER 31, 2025",
+          "type": "DATE",
+          "start": "2025-12-31",
+          "end": "2025-12-31",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "file": "HBL_CreditCard-KFS_(Eng)_16OCT2025",
+      "chunks": 4,
+      "temporal_chunks": 2,
+      "validity_chunks": 0,
+      "entities": [
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2021",
+          "type": "YEAR",
+          "start": "2021-01-01",
+          "end": "2021-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "June 22, 2021",
+          "type": "DATE",
+          "start": "2021-06-22",
+          "end": "2021-06-22",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "file": "HBL_DebitCards_-_Terms_and_Conditions",
+      "chunks": 21,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "HBL_Glossary_of_Important_Terms_English",
+      "chunks": 4,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "HBL_How-to-Open-an-account",
+      "chunks": 2,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "HBL_Individual_Account_Opening_Form_-_Conventional_22_July",
+      "chunks": 3,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "HBL_PersonalLoan_-_Terms_and_Conditions",
+      "chunks": 3,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "HBL_PersonalLoan_SOBC_Jul_to_Dec_2025",
+      "chunks": 1,
+      "temporal_chunks": 0,
+      "validity_chunks": 1,
+      "entities": []
+    },
+    {
+      "file": "Meezan_Account-Opening-PB",
+      "chunks": 5,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "Meezan_Account-Opening-Process-PB",
+      "chunks": 2,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "Meezan_accountOpening",
+      "chunks": 22,
+      "temporal_chunks": 12,
+      "validity_chunks": 0,
+      "entities": [
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2017",
+          "type": "YEAR",
+          "start": "2017-01-01",
+          "end": "2017-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        },
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.75
+        }
+      ]
+    },
+    {
+      "file": "UBL_Credit-Card-Product-English-FAQs",
+      "chunks": 5,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    },
+    {
+      "file": "UBL_Credit_Card_KFS-Change-in-SOC-July-2025-to-Dec-2025",
+      "chunks": 6,
+      "temporal_chunks": 6,
+      "validity_chunks": 0,
+      "entities": [
+        {
+          "text": "July 2025",
+          "type": "MONTH",
+          "start": "2025-07-01",
+          "end": "2025-07-31",
+          "confidence": 0.85
+        },
+        {
+          "text": "July 2025",
+          "type": "MONTH",
+          "start": "2025-07-01",
+          "end": "2025-07-31",
+          "confidence": 0.85
+        },
+        {
+          "text": "July 2025",
+          "type": "MONTH",
+          "start": "2025-07-01",
+          "end": "2025-07-31",
+          "confidence": 0.85
+        },
+        {
+          "text": "July 2025",
+          "type": "MONTH",
+          "start": "2025-07-01",
+          "end": "2025-07-31",
+          "confidence": 0.85
+        },
+        {
+          "text": "previous month",
+          "type": "RELATIVE",
+          "start": "2026-04-01",
+          "end": "2026-04-30",
+          "confidence": 0.8
+        },
+        {
+          "text": "July 2025",
+          "type": "MONTH",
+          "start": "2025-07-01",
+          "end": "2025-07-31",
+          "confidence": 0.85
+        },
+        {
+          "text": "July 2025",
+          "type": "MONTH",
+          "start": "2025-07-01",
+          "end": "2025-07-31",
+          "confidence": 0.85
+        }
+      ]
+    },
+    {
+      "file": "UBL_F-NRP Form-AW",
+      "chunks": 24,
+      "temporal_chunks": 1,
+      "validity_chunks": 0,
+      "entities": [
+        {
+          "text": "October 10, 2008",
+          "type": "DATE",
+          "start": "2008-10-10",
+          "end": "2008-10-10",
+          "confidence": 0.9
+        },
+        {
+          "text": "Jan 25, 2010",
+          "type": "DATE",
+          "start": "2010-01-25",
+          "end": "2010-01-25",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "file": "UBL_FAQs-for-UBL-Drive-English",
+      "chunks": 1,
+      "temporal_chunks": 0,
+      "validity_chunks": 0,
+      "entities": []
+    }
+  ],
+  "edge_cases": [],
+  "filename_extraction": [
+    {
+      "filename": "HBL_Apply_for_Hbl_CreditCard.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_CarLoan_SOBC_2025_Jul-Dec_-_English_.pdf",
+      "entities_found": 1,
+      "entities": [
+        {
+          "text": "2025",
+          "type": "YEAR",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "confidence": 0.8
+        }
+      ]
+    },
+    {
+      "filename": "HBL_Car_Loan_KFS_Jul-Dec_2025_(English).pdf",
+      "entities_found": 1,
+      "entities": [
+        {
+          "text": "Jul-Dec 2025",
+          "type": "DATE_RANGE",
+          "start": "2025-07-01",
+          "end": "2025-12-31",
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "filename": "HBL_CreditCard-KFS_(Eng)_16OCT2025.pdf",
+      "entities_found": 1,
+      "entities": [
+        {
+          "text": "16OCT2025",
+          "type": "DATE",
+          "start": "2025-10-16",
+          "end": "2025-10-16",
+          "confidence": 0.9500000000000001
+        }
+      ]
+    },
+    {
+      "filename": "HBL_CreditCard_Terms_and_Conditions_(English).pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_Credit_Card_Eligibility.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_DebitCards_-_Terms_and_Conditions.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_Document_checklist.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_Glossary_of_Important_Terms_English.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_How-to-Open-an-account.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_Individual_Account_Opening_Form_-_Conventional_22_July.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_PersonalLoan_-_Terms_and_Conditions.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "HBL_PersonalLoan_SOBC_Jul_to_Dec_2025.pdf",
+      "entities_found": 1,
+      "entities": [
+        {
+          "text": "Jul to Dec 2025",
+          "type": "DATE_RANGE",
+          "start": "2025-07-01",
+          "end": "2025-12-31",
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "filename": "Meezan_Account-Opening-PB.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "Meezan_Account-Opening-Process-PB.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "Meezan_accountOpening.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "Meezan_Car_loan.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "Meezan_Home_Loan.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "Meezan_Premium.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "Meezan_Rupee_Current_Account.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "UBL_Credit-Card-Product-English-FAQs.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "UBL_Credit_Card_KFS-Change-in-SOC-July-2025-to-Dec-2025.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "UBL_F-NRP Form-AW.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "UBL_FAQs-for-UBL-Drive-English.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "UBL_INFINITEDEBITCARD.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "UBL_In_Branch_opening_process_account.pdf",
+      "entities_found": 0,
+      "entities": []
+    },
+    {
+      "filename": "UBL_PERSONAL_LOAN.pdf",
+      "entities_found": 0,
+      "entities": []
+    }
+  ],
+  "extraction_patterns": {
+    "Year Only": 17,
+    "Full Date (Month DD, YYYY)": 67,
+    "Month-Year": 6,
+    "Other Format": 2
+  },
+  "skipped_files": [
+    {
+      "filename": "HBL_CreditCard_Terms_and_Conditions_(English).pdf",
+      "reason": "Too many pages (92)",
+      "page_count": 92
+    }
+  ]
+}
