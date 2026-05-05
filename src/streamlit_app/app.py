@@ -41,6 +41,14 @@ try:
 except ImportError:
     PDF_EXPORT_AVAILABLE = False
 
+# Try to import agentic module
+try:
+    from agentic import AgentPlanner, AgentExecutor
+    AGENTIC_AVAILABLE = True
+except ImportError:
+    AGENTIC_AVAILABLE = False
+    logger.warning("Agentic module not available")
+
 # Set up logging configuration
 logging.basicConfig(level=logging.INFO)  # Set default logging level to INFO
 logger = logging.getLogger(__name__)  # Create logger instance for this module
@@ -873,6 +881,39 @@ class RAGSystemUI:
             
             st.divider()
             
+            # NEW: Agentic Capabilities
+            st.markdown("### 🤖 Agentic Mode")
+            enable_agentic = st.toggle(
+                "Enable Agentic Processing",
+                value=True,
+                help="Autonomous query decomposition and multi-step reasoning"
+            )
+            
+            agentic_config = {'enabled': enable_agentic}
+            if enable_agentic:
+                enable_reflection = st.toggle(
+                    "Enable Self-Reflection",
+                    value=True,
+                    help="Agent evaluates and refines its own answers"
+                )
+                
+                confidence_threshold = st.slider(
+                    "Confidence Threshold",
+                    min_value=0.5,
+                    max_value=0.95,
+                    value=0.7,
+                    step=0.05,
+                    help="Minimum confidence to accept answer without refinement"
+                )
+                
+                agentic_config = {
+                    'enabled': True,
+                    'reflection': enable_reflection,
+                    'confidence_threshold': confidence_threshold
+                }
+            
+            st.divider()
+            
             # NEW: Streaming toggle
             st.subheader("Response Mode")
             enable_streaming = st.toggle(
@@ -899,7 +940,8 @@ class RAGSystemUI:
                 'temperature': temperature,
                 'max_tokens': max_tokens,
                 'top_k': top_k,
-                'temporal_filter': temporal_config
+                'temporal_filter': temporal_config,
+                'agentic': agentic_config
             }
     
     # Method to render document upload section
@@ -1183,6 +1225,217 @@ class RAGSystemUI:
     # Method to process user query
     def process_query(self, query, config):
         """Process user query and display results"""
+        
+        # Check if agentic mode is enabled
+        agentic_config = config.get('agentic', {})
+        use_agentic = agentic_config.get('enabled', False) and AGENTIC_AVAILABLE
+        
+        if use_agentic:
+            # Use agentic processing
+            self.process_query_agentic(query, config)
+        else:
+            # Use standard processing
+            self.process_query_standard(query, config)
+    
+    # Method for agentic query processing
+    def process_query_agentic(self, query, config):
+        """Process query using agentic module with multi-step reasoning"""
+        start_time = time.time()
+        
+        try:
+            # Initialize agentic components
+            planner = AgentPlanner()
+            
+            # Prepare retriever
+            from retrieval.temporal_retriever import TemporalAwareRetriever
+            retriever = st.session_state.retriever
+            if config.get('temporal_filter', {}).get('scoring_enabled', True):
+                if not isinstance(retriever, TemporalAwareRetriever):
+                    retriever = TemporalAwareRetriever(
+                        base_retriever=retriever,
+                        enable_temporal_scoring=True,
+                        enable_query_expansion=True
+                    )
+            
+            # Create a wrapper for the generator to work with AgentExecutor
+            class GeneratorWrapper:
+                def __init__(self, generator):
+                    self.generator = generator
+                    self.llm = self  # AgentExecutor expects generator.llm
+                    self.model_name = generator.model_name
+                
+                def generate(self, prompt, system_prompt=None):
+                    """Generate using the wrapped generator"""
+                    return self.generator.llm.generate(prompt, system_prompt)
+            
+            wrapped_generator = GeneratorWrapper(st.session_state.generator)
+            
+            # Initialize executor
+            agentic_config = config.get('agentic', {})
+            executor = AgentExecutor(
+                retriever=retriever,
+                generator=wrapped_generator,
+                max_iterations=agentic_config.get('max_iterations', 2),
+                confidence_threshold=0.7
+            )
+            
+            # Phase 1: Planning
+            st.markdown("### 🧠 Agentic Processing")
+            with st.expander("📋 Query Analysis & Planning", expanded=True):
+                plan = planner.analyze_query(query)
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Complexity", plan.complexity.value.upper())
+                with col2:
+                    st.metric("Query Type", plan.query_type.value)
+                with col3:
+                    st.metric("Steps", len(plan.sub_queries))
+                
+                if len(plan.sub_queries) > 1:
+                    st.markdown("**Query Decomposition:**")
+                    for i, sq in enumerate(plan.sub_queries, 1):
+                        deps = f" *(depends on: {', '.join(map(str, [d+1 for d in sq.dependencies]))})*" if sq.dependencies else ""
+                        st.markdown(f"{i}. {sq.question}{deps}")
+                else:
+                    st.info("Simple query - no decomposition needed")
+            
+            # Phase 2: Execution
+            with st.spinner("🚀 Executing multi-step reasoning..."):
+                result = executor.execute(
+                    plan=plan,
+                    top_k=config['top_k'],
+                    enable_reflection=agentic_config.get('reflection', True)
+                )
+            
+            # Display execution details
+            if len(result.steps) > 1:
+                with st.expander("🔍 Execution Steps", expanded=False):
+                    for i, step in enumerate(result.steps, 1):
+                        st.markdown(f"**Step {i}:** {step.sub_query.question}")
+                        st.markdown(f"- Confidence: {step.confidence:.2f}")
+                        st.markdown(f"- Time: {step.execution_time:.2f}s")
+                        st.markdown(f"- Retrieved: {len(step.retrieved_chunks)} chunks")
+                        
+                        if step.reflection and step.reflection.issues:
+                            st.warning(f"Issues: {', '.join(step.reflection.issues[:2])}")
+                        
+                        st.divider()
+            
+            # Display reflection info
+            if result.iterations > 0:
+                with st.expander("🔄 Self-Reflection & Refinement", expanded=False):
+                    st.info(f"Answer was refined {result.iterations} time(s) to improve quality")
+                    for step in result.steps:
+                        if step.reflection and step.reflection.suggestions:
+                            st.markdown("**Improvements made:**")
+                            for suggestion in step.reflection.suggestions[:3]:
+                                st.markdown(f"- {suggestion}")
+            
+            # Collect all retrieved chunks for display
+            all_chunks = []
+            for step in result.steps:
+                all_chunks.extend(step.retrieved_chunks)
+            
+            # Remove duplicates based on chunk_id
+            seen_ids = set()
+            unique_chunks = []
+            for chunk in all_chunks:
+                chunk_id = getattr(chunk, 'chunk_id', id(chunk))
+                if chunk_id not in seen_ids:
+                    seen_ids.add(chunk_id)
+                    unique_chunks.append(chunk)
+            
+            # Extract citations from final answer
+            citations = st.session_state.generator.llm.extract_citations(
+                result.final_answer, 
+                unique_chunks
+            )
+            
+            # Create response object
+            from generation.generator import GeneratedResponse
+            response = GeneratedResponse(
+                answer=result.final_answer,
+                citations=citations,
+                model_used=st.session_state.generator.model_name,
+                prompt_tokens=0,  # Not tracked in agentic mode
+                completion_tokens=0,
+                total_cost=0.0
+            )
+            
+            total_time = time.time() - start_time
+            
+            # Use agentic confidence score
+            confidence_score = int(result.final_confidence * 100)
+            if confidence_score >= 70:
+                confidence_level = "High"
+            elif confidence_score >= 40:
+                confidence_level = "Medium"
+            else:
+                confidence_level = "Low"
+            
+            # Update session state
+            st.session_state.query_history.append({
+                'query': query,
+                'response': response,
+                'retrieved': unique_chunks,
+                'time': total_time,
+                'confidence': confidence_score,
+                'timestamp': datetime.now(),
+                'agentic': True,
+                'steps': len(result.steps),
+                'iterations': result.iterations
+            })
+            
+            # Update analytics
+            st.session_state.analytics['query_times'].append((datetime.now(), total_time))
+            st.session_state.analytics['topics'].extend(query.lower().split()[:5])
+            for chunk in unique_chunks:
+                if hasattr(chunk, 'metadata'):
+                    st.session_state.analytics['sources_used'].append(
+                        chunk.metadata.get('doc_name', 'Unknown')
+                    )
+            
+            # Store for PDF export
+            st.session_state.last_response_data = {
+                'query': query,
+                'answer': result.final_answer,
+                'citations': citations,
+                'sources': unique_chunks,
+                'metrics': {
+                    'response_time': round(total_time, 2),
+                    'tokens': 0,
+                    'cost': 0.0,
+                    'confidence': confidence_score,
+                    'steps': len(result.steps),
+                    'iterations': result.iterations
+                }
+            }
+            
+            # Display results
+            self.display_results(
+                query, response, unique_chunks, total_time,
+                confidence_score, confidence_level, already_streamed=False
+            )
+            
+            # Generate follow-up questions
+            try:
+                follow_ups = generate_follow_up_questions(
+                    query, result.final_answer, st.session_state.generator
+                )
+                st.session_state.follow_up_questions = follow_ups
+            except Exception:
+                st.session_state.follow_up_questions = []
+                
+        except Exception as e:
+            st.error(f"Agentic processing error: {str(e)}")
+            logger.error(f"Agentic error: {e}", exc_info=True)
+            st.info("Falling back to standard processing...")
+            self.process_query_standard(query, config)
+    
+    # Method for standard query processing
+    def process_query_standard(self, query, config):
+        """Process query using standard RAG pipeline"""
         with st.spinner("Searching documents..."):
             start_time = time.time()
             
