@@ -61,8 +61,9 @@ RUN pip install --no-cache-dir \
     nltk>=3.8.0
 
 # Copy application code
+# Note: chunk_metadata/ is intentionally NOT copied; it's bind-mounted at runtime
+# via docker-compose. Baking it into the image wastes layer space.
 COPY src/ ./src/
-COPY chunk_metadata/ ./chunk_metadata/
 COPY prompts/ ./prompts/
 COPY config.yaml ./config.yaml
 

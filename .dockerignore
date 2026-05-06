@@ -77,6 +77,11 @@ Thumbs.db
 # Environment examples
 .env.example
 
+# Large data dirs - mounted at runtime, never baked into the image
+chunk_metadata/
+data/
+.cache/
+
 # IMPORTANT: Include models directory (negation pattern)
 !models/
 

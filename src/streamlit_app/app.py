@@ -493,8 +493,11 @@ def extract_summary_stats(retriever):
             except:
                 pass
         
-        # Extract document names from chunks
-        for chunk in chunks_list[:200]:  # Sample first 200
+        # Extract document names from ALL chunks (not just a sample) — chunks
+        # belonging to a single document are usually stored contiguously, so
+        # sampling biases the count to 1. This is just dict access, fast even
+        # at 27k+ chunks.
+        for chunk in chunks_list:
             if hasattr(chunk, 'metadata'):
                 doc_names.add(chunk.metadata.get('doc_name', 'Unknown'))
             elif isinstance(chunk, dict):
@@ -763,7 +766,10 @@ class RAGSystemUI:
                 st.rerun()
             
             if data_mode == 'preloaded':
-                st.success("✅ 27,283 banking documents ready")
+                # Note: 27,283 is the chunk count (each PDF gets split into many
+                # 512-token chunks), not the document count. Once the index loads
+                # the main panel shows the actual document count.
+                st.success("✅ Pre-indexed banking corpus ready (27,283 chunks)")
             
             st.divider()
             
@@ -1477,11 +1483,75 @@ class RAGSystemUI:
                             ))
                 
                 retrieval_time = time.time() - start_time
-                
-                # Generate answer
+
                 generator = st.session_state.generator
                 llm = generator.llm
-                
+
+                # ----- Hallucination / scope gate -----
+                # Refuse out-of-scope or under-grounded queries BEFORE calling the LLM.
+                # Triggered when the best retrieved chunk is below the similarity floor
+                # (catches off-domain queries like "give me a python script").
+                if not generator.is_query_in_scope(retrieved_results):
+                    top_score = max(
+                        (getattr(c, 'score', 0.0) or 0.0 for c in retrieved_results),
+                        default=0.0,
+                    )
+                    logger.info(
+                        f"🚫 Streamlit: refusing out-of-scope query "
+                        f"(top score={top_score:.3f})"
+                    )
+                    refusal = generator.OUT_OF_SCOPE_REFUSAL
+
+                    st.markdown("### Answer")
+                    st.markdown(
+                        f'<div class="answer-box">{refusal}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.info(
+                        "This question doesn't appear to relate to the loaded financial "
+                        "documents. Try rephrasing as a question about specific document "
+                        "content (rates, fees, terms, dates, etc.)."
+                    )
+
+                    from generation.generator import GeneratedResponse
+                    response = GeneratedResponse(
+                        answer=refusal,
+                        citations=[],
+                        model_used=llm.model_name,
+                        prompt_tokens=0,
+                        completion_tokens=0,
+                        total_cost=0.0,
+                    )
+                    total_time = time.time() - start_time
+
+                    st.session_state.query_history.append({
+                        'query': query,
+                        'response': response,
+                        'retrieved': retrieved_results,
+                        'time': total_time,
+                        'confidence': 0,
+                        'timestamp': datetime.now(),
+                        'refused': True,
+                        'refusal_reason': f'low_top_score={top_score:.3f}',
+                    })
+                    st.session_state.analytics['query_times'].append(
+                        (datetime.now(), total_time)
+                    )
+                    st.session_state.last_response_data = {
+                        'query': query,
+                        'answer': refusal,
+                        'citations': [],
+                        'sources': [],
+                        'metrics': {
+                            'response_time': round(total_time, 2),
+                            'tokens': 0,
+                            'cost': 0.0,
+                            'confidence': 0,
+                        },
+                        'refused': True,
+                    }
+                    st.stop()
+
                 # Build context and prompts
                 context_parts = []
                 for idx, chunk in enumerate(retrieved_results, start=1):

@@ -33,3 +33,7 @@ models/
 # Results
 results/
 logs/
+
+*.xlsx
+plan.md
+.cursor/
