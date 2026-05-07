@@ -48,23 +48,23 @@ class AgentExecutor:
     def __init__(
         self,
         retriever,
-        ,
+        generator,
         reflector: Optional[SelfReflector] = None,
         max_iterations: int = 3,
         confidence_threshold: float = 0.7
     ):
         """
         Initialize executor
-        
+
         Args:
             retriever: Document retriever
-            : Answer  (LLM)
+            generator: Answer generator (LLM)
             reflector: Self-reflection module
             max_iterations: Maximum refinement iterations
             confidence_threshold: Minimum confidence to accept answer
         """
         self.retriever = retriever
-        self. = 
+        self.generator = generator
         self.reflector = reflector or SelfReflector()
         self.max_iterations = max_iterations
         self.confidence_threshold = confidence_threshold
@@ -259,13 +259,15 @@ class AgentExecutor:
             chunk_texts.append(f"[Source {i}: {doc_name}, Page {page}]\n{content}")
         
         context_text = "\n\n".join(chunk_texts)
-        
+
+        previous_block = f"Previous Information:\n{context}\n" if context else ""
+
         prompt = f"""Answer the following question based on the provided context.
 
 Context:
 {context_text}
 
-{f"Previous Information:\n{context}\n" if context else ""}
+{previous_block}
 
 Question: {query}
 
@@ -279,7 +281,7 @@ Answer:"""
 
         system_prompt = "You are a financial document analysis expert. Provide accurate, well-cited answers."
         
-        answer, _ = self..llm.generate(prompt, system_prompt)
+        answer, _ = self.generator.llm.generate(prompt, system_prompt)
         
         return answer.strip()
     
@@ -354,7 +356,7 @@ Final Answer:"""
 
         system_prompt = "You are an expert at synthesizing information from multiple sources into coherent answers."
         
-        final_answer, _ = self..llm.generate(synthesis_prompt, system_prompt)
+        final_answer, _ = self.generator.llm.generate(synthesis_prompt, system_prompt)
         
         # Calculate overall confidence (weighted average)
         total_confidence = sum(step.confidence for step in steps) / len(steps)
@@ -398,6 +400,6 @@ Refined Answer:"""
 
         system_prompt = "You are an expert at refining and improving answers based on feedback."
         
-        refined_answer, _ = self..llm.generate(refinement_prompt, system_prompt)
+        refined_answer, _ = self.generator.llm.generate(refinement_prompt, system_prompt)
         
         return refined_answer.strip()

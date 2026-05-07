@@ -78,6 +78,31 @@ services:
     # passed back from workers on long PDFs.
     shm_size: '512mb'
 
+  # One-off KG builder. Reuses the same image; bind-mounts chunk_metadata so
+  # kg.pkl is written to the host. Gated behind the `tools` profile so it
+  # doesn't start with `docker compose up`.
+  # Run with:
+  #   docker compose run --rm kg-builder
+  #   docker compose run --rm kg-builder python scripts/build_kg.py --no-spacy
+  kg-builder:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agentic-multi-document-financial-rag-rag-app
+    environment:
+      - PYTHONPATH=/app:/app/src
+      - HF_HOME=/app/.cache/huggingface
+      - HF_HUB_DISABLE_SYMLINKS_WARNING=1
+    volumes:
+      - ./chunk_metadata:/app/chunk_metadata
+      - ./.env:/app/.env:ro
+      - ./config.yaml:/app/config.yaml:ro
+      - rag-cache:/app/.cache
+    networks:
+      - rag-network
+    command: ["python", "scripts/build_kg.py"]
+
 # Named volume for model cache persistence
 volumes:
   rag-cache:

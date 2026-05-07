@@ -76,270 +76,426 @@ st.set_page_config(
     initial_sidebar_state="expanded"  # Sidebar starts expanded
 )
 
-# Custom CSS for professional black and orange theme
+# Custom CSS — Slate + Cyan modern theme
 st.markdown("""
 <style>
-    /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
-    /* Global Styles */
-    * {
-        font-family: 'Inter', sans-serif;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+        --bg-0: #07090f;
+        --bg-1: #0b1220;
+        --bg-2: #0f172a;
+        --surface-1: rgba(30, 41, 59, 0.55);
+        --surface-2: rgba(15, 23, 42, 0.75);
+        --surface-3: rgba(51, 65, 85, 0.35);
+        --border-subtle: rgba(148, 163, 184, 0.12);
+        --border-strong: rgba(34, 211, 238, 0.35);
+        --accent: #22d3ee;
+        --accent-2: #06b6d4;
+        --accent-3: #0ea5e9;
+        --accent-glow: rgba(34, 211, 238, 0.25);
+        --text-1: #f1f5f9;
+        --text-2: #cbd5e1;
+        --text-3: #94a3b8;
+        --text-muted: #64748b;
+        --success: #10b981;
+        --warn: #f59e0b;
+        --danger: #ef4444;
     }
-    
-    /* Main app background */
+
+    * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    code, pre, kbd { font-family: 'JetBrains Mono', monospace !important; }
+
+    /* App background — layered radial glows over slate */
     .stApp {
-        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+        background:
+            radial-gradient(1200px 600px at 10% -10%, rgba(34, 211, 238, 0.10), transparent 60%),
+            radial-gradient(900px 500px at 90% 0%, rgba(14, 165, 233, 0.08), transparent 55%),
+            radial-gradient(700px 400px at 50% 100%, rgba(6, 182, 212, 0.06), transparent 60%),
+            linear-gradient(180deg, #07090f 0%, #0b1220 50%, #0f172a 100%);
+        color: var(--text-1);
     }
-    
-    /* Sidebar styling */
+
+    .block-container { padding-top: 2rem; }
+
+    /* Sidebar */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
-        border-right: 2px solid #ff6b35;
+        background: linear-gradient(180deg, rgba(11, 18, 32, 0.9) 0%, rgba(7, 9, 15, 0.95) 100%);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-right: 1px solid var(--border-subtle);
+        box-shadow: inset -1px 0 0 rgba(34, 211, 238, 0.08);
     }
-    
-    [data-testid="stSidebar"] .stMarkdown {
-        color: #ffffff;
-    }
-    
-    /* Main header styling */
+    [data-testid="stSidebar"] .stMarkdown,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p { color: var(--text-2); }
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 { color: var(--text-1); letter-spacing: -0.01em; }
+
+    /* Hero typography */
     .main-header {
-        font-size: 3rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        font-size: 3.25rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #e0f2fe 0%, #22d3ee 45%, #06b6d4 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         text-align: center;
-        padding: 1rem 0;
-        margin-bottom: 0.5rem;
-        letter-spacing: -1px;
+        padding: 0.5rem 0 0.25rem;
+        letter-spacing: -0.035em;
+        line-height: 1.05;
     }
-    
     .sub-header {
-        font-size: 1.1rem;
-        color: #b0b0b0;
-        text-align: center;
-        margin-bottom: 2rem;
-        font-weight: 400;
-    }
-    
-    .brand-tagline {
-        font-size: 0.9rem;
-        color: #ff6b35;
-        text-align: center;
-        margin-bottom: 2rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-    
-    /* Answer box styling - Orange accent */
-    .answer-box {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-        color: #ffffff;
-        padding: 2rem;
-        border-radius: 12px;
-        border-left: 5px solid #ff6b35;
-        margin: 1.5rem 0;
         font-size: 1.05rem;
-        line-height: 1.8;
-        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.15);
+        color: var(--text-3);
+        text-align: center;
+        margin-bottom: 1.75rem;
+        font-weight: 400;
+        letter-spacing: 0.01em;
     }
-    
-    /* Source cards styling */
+    .brand-tagline {
+        font-size: 0.78rem;
+        color: var(--accent);
+        text-align: center;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.32em;
+    }
+
+    h1, h2, h3, h4 { color: var(--text-1); letter-spacing: -0.015em; }
+    p, li, span, label, div { color: var(--text-2); }
+
+    /* Answer box — glass + cyan rail */
+    .answer-box {
+        position: relative;
+        background: var(--surface-2);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        color: var(--text-1);
+        padding: 1.75rem 2rem;
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+        margin: 1.5rem 0;
+        font-size: 1.02rem;
+        line-height: 1.75;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.04) inset,
+            0 20px 40px -20px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(34, 211, 238, 0.08);
+    }
+    .answer-box::before {
+        content: "";
+        position: absolute; left: 0; top: 12px; bottom: 12px;
+        width: 3px; border-radius: 3px;
+        background: linear-gradient(180deg, #22d3ee, #0ea5e9);
+        box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    /* Source cards */
     .source-card {
-        background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
-        color: #e0e0e0;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-        border: 1px solid #333333;
-        border-left: 4px solid #ff6b35;
-        transition: all 0.3s ease;
+        background: var(--surface-1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: var(--text-2);
+        padding: 1.25rem 1.5rem;
+        border-radius: 14px;
+        margin: 0.85rem 0;
+        border: 1px solid var(--border-subtle);
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        position: relative;
+        overflow: hidden;
     }
-    
+    .source-card::before {
+        content: "";
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 2px;
+        background: linear-gradient(180deg, var(--accent), transparent);
+        opacity: 0.7;
+    }
     .source-card:hover {
-        border-left: 4px solid #ff8c42;
-        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+        transform: translateY(-2px);
+        border-color: var(--border-strong);
+        box-shadow: 0 12px 32px -16px rgba(34, 211, 238, 0.35);
     }
-    
-    /* Semantic highlighting */
+
+    /* Semantic highlight */
     .highlight {
-        background-color: rgba(255, 107, 53, 0.3);
-        padding: 2px 4px;
-        border-radius: 3px;
-        color: #ffb380;
-        font-weight: 500;
+        background: linear-gradient(180deg, transparent 55%, rgba(34, 211, 238, 0.35) 55%);
+        padding: 0 3px;
+        border-radius: 2px;
+        color: #e0f7fa;
+        font-weight: 600;
     }
-    
-    /* Confidence meter styling - Orange theme */
+
+    /* Confidence pills */
     .confidence-meter {
-        padding: 0.7rem 1.5rem;
-        border-radius: 25px;
-        display: inline-block;
+        padding: 0.55rem 1.1rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
         font-weight: 600;
         margin: 0.5rem 0;
-        font-size: 0.95rem;
+        font-size: 0.82rem;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        border: 1px solid transparent;
     }
     .confidence-high {
-        background: linear-gradient(90deg, #ff6b35, #ff8c42);
-        color: #000000;
-        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        background: rgba(16, 185, 129, 0.12);
+        color: #6ee7b7;
+        border-color: rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 24px rgba(16, 185, 129, 0.15);
     }
     .confidence-medium {
-        background: linear-gradient(90deg, #ffa500, #ffb347);
-        color: #000000;
-        box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+        background: rgba(245, 158, 11, 0.12);
+        color: #fcd34d;
+        border-color: rgba(245, 158, 11, 0.4);
+        box-shadow: 0 0 24px rgba(245, 158, 11, 0.12);
     }
     .confidence-low {
-        background: linear-gradient(90deg, #666666, #888888);
-        color: #ffffff;
-        box-shadow: 0 4px 15px rgba(102, 102, 102, 0.4);
+        background: rgba(148, 163, 184, 0.10);
+        color: #cbd5e1;
+        border-color: rgba(148, 163, 184, 0.3);
     }
-    
-    /* Follow-up question buttons */
+
+    /* Follow-up chips (used for visual reference; stButton handles real buttons) */
     .followup-btn {
-        background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-        border: 2px solid #ff6b35;
-        color: #ff6b35;
-        padding: 0.7rem 1.5rem;
-        border-radius: 25px;
-        margin: 0.5rem;
+        background: var(--surface-1);
+        border: 1px solid var(--border-strong);
+        color: var(--accent);
+        padding: 0.55rem 1.1rem;
+        border-radius: 999px;
+        margin: 0.4rem;
         cursor: pointer;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 500;
-        transition: all 0.3s ease;
+        transition: all 0.25s ease;
     }
     .followup-btn:hover {
-        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
-        color: #000000;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        background: rgba(34, 211, 238, 0.12);
+        color: #ecfeff;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px -10px var(--accent-glow);
     }
-    
-    /* Summary card styling - Black & Orange */
+
+    /* Summary cards — modern glass */
     .summary-card {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-        border: 2px solid #ff6b35;
-        color: white;
-        padding: 1.5rem;
-        border-radius: 15px;
-        text-align: center;
-        margin: 0.5rem 0;
-        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.2);
-        transition: all 0.3s ease;
+        background: var(--surface-2);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-1);
+        padding: 1.4rem 1.25rem;
+        border-radius: 16px;
+        text-align: left;
+        margin: 0.4rem 0;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .summary-card::after {
+        content: "";
+        position: absolute; inset: 0;
+        background: radial-gradient(400px 120px at 0% 0%, rgba(34, 211, 238, 0.10), transparent 60%);
+        pointer-events: none;
     }
     .summary-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(255, 107, 53, 0.3);
+        transform: translateY(-3px);
+        border-color: var(--border-strong);
+        box-shadow: 0 18px 40px -20px rgba(34, 211, 238, 0.4);
     }
     .summary-card h3 {
         margin: 0;
-        font-size: 2rem;
+        font-size: 2.1rem;
         font-weight: 700;
-        color: #ff6b35;
+        color: var(--text-1);
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #f1f5f9, #22d3ee);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     .summary-card p {
-        margin: 0.5rem 0 0 0;
-        opacity: 0.9;
-        font-size: 0.9rem;
-        color: #b0b0b0;
+        margin: 0.4rem 0 0 0;
+        font-size: 0.72rem;
+        color: var(--text-3);
         text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    /* Button styling */
-    .stButton>button {
-        width: 100%;
-        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
-        color: #000000;
-        border: none;
-        padding: 0.75rem 1.5rem;
+        letter-spacing: 0.18em;
         font-weight: 600;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
     }
-    
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #ff8c42 0%, #ffb347 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+
+    /* Buttons — primary cyan */
+    .stButton>button, .stDownloadButton>button {
+        width: 100%;
+        background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%);
+        color: #042f2e;
+        border: 1px solid rgba(34, 211, 238, 0.5);
+        padding: 0.65rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border-radius: 10px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        box-shadow: 0 4px 14px -4px var(--accent-glow);
     }
-    
-    /* Text input styling */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-        background-color: #1a1a1a;
-        color: #ffffff;
-        border: 2px solid #333333;
-        border-radius: 8px;
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+        box-shadow: 0 10px 28px -8px var(--accent-glow);
     }
-    
-    .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
-        border-color: #ff6b35;
-        box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+    .stButton>button:active { transform: translateY(0); }
+
+    /* Secondary button variant when inside a form/help context — keep it readable */
+    .stButton>button:focus { outline: none; box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.35); }
+
+    /* Inputs */
+    .stTextInput>div>div>input,
+    .stTextArea>div>div>textarea,
+    .stNumberInput>div>div>input {
+        background-color: rgba(15, 23, 42, 0.7) !important;
+        color: var(--text-1) !important;
+        border: 1px solid var(--border-subtle) !important;
+        border-radius: 10px !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    
-    /* Selectbox styling */
-    .stSelectbox>div>div>div {
-        background-color: #1a1a1a;
-        color: #ffffff;
-        border: 2px solid #333333;
+    .stTextInput>div>div>input:focus,
+    .stTextArea>div>div>textarea:focus,
+    .stNumberInput>div>div>input:focus {
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18) !important;
     }
-    
-    /* Metric styling */
+
+    /* Selectbox / multiselect */
+    .stSelectbox>div>div, .stMultiSelect>div>div {
+        background-color: rgba(15, 23, 42, 0.7) !important;
+        border: 1px solid var(--border-subtle) !important;
+        border-radius: 10px !important;
+        color: var(--text-1) !important;
+    }
+
+    /* Radio + checkbox labels */
+    .stRadio label, .stCheckbox label { color: var(--text-2) !important; }
+
+    /* Slider */
+    .stSlider [data-baseweb="slider"] div[role="slider"] {
+        background: var(--accent) !important;
+        border: 2px solid #ecfeff !important;
+        box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* Metrics */
     [data-testid="stMetricValue"] {
-        color: #ff6b35;
+        color: var(--accent) !important;
         font-weight: 700;
+        letter-spacing: -0.02em;
     }
-    
-    [data-testid="stMetricLabel"] {
-        color: #b0b0b0;
+    [data-testid="stMetricLabel"] { color: var(--text-3) !important; }
+
+    /* Expander */
+    .streamlit-expanderHeader,
+    [data-testid="stExpander"] summary {
+        background: var(--surface-1) !important;
+        color: var(--text-1) !important;
+        border: 1px solid var(--border-subtle) !important;
+        border-radius: 10px !important;
+        font-weight: 500;
     }
-    
-    /* Expander styling */
-    .streamlit-expanderHeader {
-        background-color: #1a1a1a;
-        color: #ffffff;
-        border: 1px solid #333333;
+    [data-testid="stExpander"] summary:hover { border-color: var(--border-strong) !important; }
+    [data-testid="stExpander"] {
+        border: none !important;
+        background: transparent !important;
+    }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.25rem;
+        background: var(--surface-3);
+        padding: 0.35rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        color: var(--text-3);
         border-radius: 8px;
+        padding: 0.55rem 1rem;
+        font-weight: 500;
+        transition: color 0.2s ease, background 0.2s ease;
     }
-    
-    .streamlit-expanderHeader:hover {
-        border-color: #ff6b35;
+    .stTabs [data-baseweb="tab"]:hover { color: var(--text-1); }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(14, 165, 233, 0.12)) !important;
+        color: var(--text-1) !important;
+        box-shadow: 0 0 0 1px var(--border-strong);
     }
-    
+
+    /* Chat / text bubbles produced by st.info, st.success, st.warning */
+    .stAlert {
+        border-radius: 12px !important;
+        border: 1px solid var(--border-subtle) !important;
+        backdrop-filter: blur(8px);
+    }
+
+    /* Dataframe */
+    .stDataFrame, [data-testid="stTable"] {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-subtle);
+    }
+
+    /* File uploader */
+    [data-testid="stFileUploader"] section {
+        background: var(--surface-1) !important;
+        border: 1.5px dashed rgba(34, 211, 238, 0.35) !important;
+        border-radius: 14px !important;
+        color: var(--text-2) !important;
+        transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    [data-testid="stFileUploader"] section:hover {
+        border-color: var(--accent) !important;
+        background: rgba(34, 211, 238, 0.05) !important;
+    }
+
+    /* Progress bar */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, var(--accent-2), var(--accent)) !important;
+    }
+
     /* Divider */
     hr {
-        border-color: #ff6b35;
-        opacity: 0.3;
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+        opacity: 0.7;
+        margin: 1.5rem 0;
     }
-    
-    /* Hide Streamlit branding */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #0a0a0a;
-    }
-    
+
+    /* Hide Streamlit chrome */
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
+    header[data-testid="stHeader"] { background: transparent; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg-0); }
     ::-webkit-scrollbar-thumb {
-        background: #ff6b35;
-        border-radius: 5px;
+        background: linear-gradient(180deg, #0ea5e9, #06b6d4);
+        border-radius: 6px;
+        border: 2px solid var(--bg-0);
     }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #ff8c42;
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    /* Subtle entrance fade */
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .answer-box, .source-card, .summary-card {
+        animation: fadeUp 0.45s ease both;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -718,21 +874,21 @@ class RAGSystemUI:
             
             with col2:
                 st.markdown(f"""
-                <div class="summary-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <div class="summary-card">
                     <h3>{stats['total_chunks']}</h3>
                     <p>Text Chunks Indexed</p>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             with col3:
                 queries_count = len(st.session_state.query_history)
                 st.markdown(f"""
-                <div class="summary-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="summary-card">
                     <h3>{queries_count}</h3>
                     <p>Queries Processed</p>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             with col4:
                 # Count temporal chunks
                 temporal_count = 0
@@ -746,7 +902,7 @@ class RAGSystemUI:
                     pass
                 
                 st.markdown(f"""
-                <div class="summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="summary-card">
                     <h3>{temporal_count}</h3>
                     <p>Temporal Chunks</p>
                 </div>
@@ -767,10 +923,15 @@ class RAGSystemUI:
         with st.sidebar:
             # Branding
             st.markdown("""
-            <div style='text-align: center; padding: 1rem 0; margin-bottom: 1rem;'>
-                <h1 style='color: #ff6b35; font-size: 1.8rem; margin: 0; line-height: 1.3;'>🧠 Agentic RAG</h1>
-                <p style='color: #ff8c42; font-size: 0.75rem; margin: 0.3rem 0 0 0; font-weight: 600;'>TEMPORAL • KNOWLEDGE GRAPH</p>
-                <p style='color: #b0b0b0; font-size: 0.7rem; margin: 0.3rem 0 0 0;'>Configuration Panel</p>
+            <div style='text-align: center; padding: 1rem 0 0.5rem; margin-bottom: 0.5rem;'>
+                <h1 style='font-size: 1.7rem; margin: 0; line-height: 1.2; font-weight: 800; letter-spacing: -0.02em;
+                           background: linear-gradient(135deg, #e0f2fe 0%, #22d3ee 60%, #06b6d4 100%);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'>
+                    Agentic RAG
+                </h1>
+                <p style='color: #22d3ee; font-size: 0.68rem; margin: 0.4rem 0 0 0; font-weight: 600;
+                          text-transform: uppercase; letter-spacing: 0.28em;'>Temporal • Knowledge Graph</p>
+                <p style='color: #64748b; font-size: 0.7rem; margin: 0.45rem 0 0 0;'>Configuration Panel</p>
             </div>
             """, unsafe_allow_html=True)
             

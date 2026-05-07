@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr /i \"stitch\" \"C:\\\\Users\\\\Administrator\\\\.claude.json\")",
+      "Bash(more)",
+      "Bash(claude mcp *)"
+    ]
+  }
+}

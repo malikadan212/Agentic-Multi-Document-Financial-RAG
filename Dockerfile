@@ -71,6 +71,7 @@ RUN python -m spacy download en_core_web_sm
 # via docker-compose. Baking it into the image wastes layer space.
 COPY src/ ./src/
 COPY prompts/ ./prompts/
+COPY scripts/ ./scripts/
 COPY config.yaml ./config.yaml
 
 # Create necessary directories
