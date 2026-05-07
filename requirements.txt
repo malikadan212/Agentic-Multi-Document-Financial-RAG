@@ -45,3 +45,8 @@ pytesseract>=0.3.10
 
 # Vector Database
 chromadb>=0.4.0
+
+# Knowledge Graph (KG retrieval module)
+networkx>=3.0
+spacy>=3.5,<4.0
+# After install, download the model: python -m spacy download en_core_web_sm

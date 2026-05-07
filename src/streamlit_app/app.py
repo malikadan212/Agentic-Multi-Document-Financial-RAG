@@ -49,6 +49,20 @@ except ImportError:
     AGENTIC_AVAILABLE = False
     logger.warning("Agentic module not available")
 
+# Try to import KG module — soft dependency on networkx/spacy. UI silently falls
+# back to vector-only retrieval if either the module or the persisted graph is
+# missing.
+try:
+    from kg import (
+        FinancialEntityExtractor,
+        FinancialKnowledgeGraph,
+        KGAwareRetriever,
+    )
+    KG_MODULE_AVAILABLE = True
+except ImportError as exc:  # noqa: BLE001
+    KG_MODULE_AVAILABLE = False
+    logger.warning(f"KG module not available: {exc}")
+
 # Set up logging configuration
 logging.basicConfig(level=logging.INFO)  # Set default logging level to INFO
 logger = logging.getLogger(__name__)  # Create logger instance for this module
@@ -333,12 +347,24 @@ st.markdown("""
 
 # === HELPER FUNCTIONS FOR NEW FEATURES ===
 
-def calculate_confidence_score(retrieved_results, answer, citations):
+def calculate_confidence_score(retrieved_results, answer, citations, kg_coverage=None):
     """
     Calculate a confidence score (0-100) based on:
-    - Average retrieval score (0-40 points)
-    - Number of sources used (0-30 points)
-    - Citation density (0-30 points)
+    - Average retrieval score        (0-40 points)
+    - Number of sources used         (0-30 points)
+    - Citation density               (0-30 points)
+    - KG entity coverage (optional)  (0-15 points, additive bonus, capped at 100)
+
+    Args:
+        retrieved_results: list of RetrievalResult-like objects with `.score`.
+        answer: generated answer text.
+        citations: list of extracted citations.
+        kg_coverage: float in [0, 1], the fraction of query entities that appeared
+            in the retrieved chunks (computed by KGAwareRetriever). Pass None when
+            KG retrieval is disabled — no bonus applied.
+
+    Returns:
+        (total_score: int, level: str)
     """
     if not retrieved_results:
         return 0, "Low"
@@ -360,9 +386,15 @@ def calculate_confidence_score(retrieved_results, answer, citations):
         citation_points = min(30, citation_density * 15)
     else:
         citation_points = 0
-    
-    total_score = int(retrieval_points + source_points + citation_points)
-    
+
+    # KG bonus (0-15 points, additive on top of the 0-100 scale, capped at 100).
+    # Only applied when KG retrieval is enabled AND the query had entities.
+    kg_bonus_points = 0.0
+    if kg_coverage is not None and kg_coverage > 0:
+        kg_bonus_points = min(15.0, float(kg_coverage) * 15.0)
+
+    total_score = int(min(100, retrieval_points + source_points + citation_points + kg_bonus_points))
+
     # Determine confidence level
     if total_score >= 70:
         level = "High"
@@ -919,7 +951,37 @@ class RAGSystemUI:
                 }
             
             st.divider()
-            
+
+            # NEW: Knowledge Graph toggle.
+            # The persisted KG is built offline by `scripts/build_kg.py` and lives
+            # at `chunk_metadata/kg.pkl`. If it's missing, we surface a hint instead
+            # of a silent failure.
+            st.markdown("### 🕸️ Knowledge Graph")
+            kg_path = Path("chunk_metadata/kg.pkl")
+            kg_present = KG_MODULE_AVAILABLE and kg_path.exists()
+            kg_help = (
+                "Use a pre-built financial entity KG to expand retrieval (related "
+                "entities) and rerank by entity overlap. Improves recall on "
+                "multi-entity / relationship questions and adds a confidence bonus."
+            )
+            enable_kg = st.toggle(
+                "Enable Knowledge Graph Retrieval",
+                value=kg_present,
+                disabled=not kg_present,
+                help=kg_help if kg_present else (
+                    "KG file not found at chunk_metadata/kg.pkl. "
+                    "Build it with: `python scripts/build_kg.py`."
+                ),
+            )
+            if not KG_MODULE_AVAILABLE:
+                st.caption("⚠️ KG module not installed (networkx missing).")
+            elif not kg_path.exists():
+                st.caption("⚠️ Run `python scripts/build_kg.py` to build the graph.")
+
+            kg_config = {'enabled': bool(enable_kg and kg_present)}
+
+            st.divider()
+
             # NEW: Streaming toggle
             st.subheader("Response Mode")
             enable_streaming = st.toggle(
@@ -947,7 +1009,8 @@ class RAGSystemUI:
                 'max_tokens': max_tokens,
                 'top_k': top_k,
                 'temporal_filter': temporal_config,
-                'agentic': agentic_config
+                'agentic': agentic_config,
+                'kg': kg_config
             }
     
     # Method to render document upload section
@@ -1023,7 +1086,28 @@ class RAGSystemUI:
                     st.session_state.retriever = retriever
                     st.session_state.generator = generator
                     st.session_state.system_loaded = True
-                    
+
+                    # Lazily load the KG once, if both the module and the persisted
+                    # graph are available. The toggle in the sidebar guards usage,
+                    # so the load is cheap insurance — graph fits in RAM and helps
+                    # subsequent queries without a per-query load cost.
+                    if KG_MODULE_AVAILABLE:
+                        kg_path = project_root / "chunk_metadata" / "kg.pkl"
+                        if kg_path.exists():
+                            try:
+                                kg_obj = FinancialKnowledgeGraph.load(str(kg_path))
+                                if kg_obj is not None:
+                                    st.session_state.kg_graph = kg_obj
+                                    st.session_state.kg_extractor = (
+                                        FinancialEntityExtractor(use_spacy=False)
+                                    )
+                                    logger.info(
+                                        "✅ KG loaded: %s",
+                                        kg_obj.stats(),
+                                    )
+                            except Exception as kg_exc:  # noqa: BLE001
+                                logger.warning(f"KG load failed: {kg_exc}")
+
                     st.success("System ready for queries!")
                     
                 except FileNotFoundError as e:
@@ -1055,14 +1139,20 @@ class RAGSystemUI:
                             f.write(file.getbuffer())
                     
                     progress_bar.progress(20)
-                    status_text.text("Extracting text and tables...")
-                    
+                    status_text.text(
+                        "Extracting text + tables in parallel… "
+                        "(long PDFs run on multiple CPU cores; see container logs for per-page progress)"
+                    )
+
                     pipeline = DocumentPipeline()
-                    
+
                     use_multimodal = config.get('llm_provider') == 'groq_vision' and MULTIMODAL_AVAILABLE
-                    
+
                     if use_multimodal:
-                        status_text.text("Extracting text, tables, and images...")
+                        status_text.text(
+                            "Extracting text, tables, and images in parallel… "
+                            "(see container logs for per-page progress)"
+                        )
                         chunks, image_chunks = pipeline.process_directory_multimodal(str(temp_dir))
                         st.session_state.image_chunks = image_chunks
                     else:
@@ -1450,7 +1540,8 @@ class RAGSystemUI:
                 from retrieval.temporal_retriever import TemporalAwareRetriever
                 
                 # Wrap retriever with temporal awareness if scoring enabled
-                retriever = st.session_state.retriever
+                base_preloaded = st.session_state.retriever  # the PreloadedRetriever
+                retriever = base_preloaded
                 if config.get('temporal_filter', {}).get('scoring_enabled', True):
                     if not isinstance(retriever, TemporalAwareRetriever):
                         retriever = TemporalAwareRetriever(
@@ -1459,14 +1550,35 @@ class RAGSystemUI:
                             enable_query_expansion=True
                         )
                         logger.info("✅ Using temporal-aware retriever")
-                
-                # Retrieve relevant chunks
+
+                # Wrap with KG-aware retriever ON TOP if user enabled it.
+                # KG runs after temporal so it expands/reranks the temporally-relevant
+                # candidate set. The original PreloadedRetriever is passed as the
+                # chunk_loader so KG can resolve chunk_ids during expansion.
+                kg_aware = None
+                if config.get('kg', {}).get('enabled') and KG_MODULE_AVAILABLE:
+                    kg_obj = st.session_state.get('kg_graph')
+                    kg_extractor = st.session_state.get('kg_extractor')
+                    if kg_obj is not None and kg_extractor is not None:
+                        kg_aware = KGAwareRetriever(
+                            base_retriever=retriever,
+                            kg=kg_obj,
+                            extractor=kg_extractor,
+                            chunk_loader=base_preloaded,
+                        )
+                        retriever = kg_aware
+                        logger.info("✅ Using KG-aware retriever")
+
+                # Retrieve relevant chunks. We only pass temporal_filter to retrievers
+                # that understand it (Temporal or KG-wrapping-Temporal). PreloadedRetriever
+                # alone does not accept that kwarg.
                 temporal_filter = config.get('temporal_filter', {})
-                raw_results = retriever.retrieve(
-                    query, 
-                    top_k=config['top_k'],
-                    temporal_filter=temporal_filter if temporal_filter.get('enabled') else None
-                )
+                retrieve_kwargs = {'top_k': config['top_k']}
+                if isinstance(retriever, (TemporalAwareRetriever,)) or kg_aware is not None:
+                    retrieve_kwargs['temporal_filter'] = (
+                        temporal_filter if temporal_filter.get('enabled') else None
+                    )
+                raw_results = retriever.retrieve(query, **retrieve_kwargs)
                 
                 # Convert to standard format (only if not already RetrievalResult)
                 retrieved_results = raw_results
@@ -1658,9 +1770,15 @@ For observations from images, describe what you see clearly."""
                 
                 total_time = time.time() - start_time
                 
-                # Calculate confidence score
+                # Calculate confidence score (with optional KG bonus)
+                kg_coverage = None
+                if kg_aware is not None:
+                    try:
+                        kg_coverage = kg_aware.query_entity_coverage(retrieved_results)
+                    except Exception as kg_exc:  # noqa: BLE001
+                        logger.debug(f"KG coverage calc failed: {kg_exc}")
                 confidence_score, confidence_level = calculate_confidence_score(
-                    retrieved_results, answer, citations
+                    retrieved_results, answer, citations, kg_coverage=kg_coverage
                 )
                 
                 # Update session state

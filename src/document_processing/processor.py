@@ -14,6 +14,14 @@ from dataclasses import dataclass  # For creating data classes
 import re  # For regular expressions (text cleaning)
 from pathlib import Path  # For path manipulation
 import logging  # For logging functionality
+import gc  # Manual garbage collection between heavy PDF pages (memory hygiene)
+import os  # CPU detection for parallel workers
+import multiprocessing as mp  # Process-based parallelism for pdfplumber (GIL-bound)
+from concurrent.futures import (
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    as_completed,
+)
 from PIL import Image  # For image processing (OCR)
 import io  # For byte stream handling
 
@@ -81,6 +89,157 @@ class ImageChunk:
         return f"ImageChunk({self.chunk_id}, page={self.metadata.get('page')}, size={self.image.size if self.image else 'N/A'})"
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Module-level helpers for PARALLEL PDF processing.
+#
+# These live at module level (not as class methods) for two reasons:
+#   1. ProcessPoolExecutor with the 'spawn' start method needs picklable,
+#      importable callables — bound methods on a class with heavy state
+#      (Tesseract config, etc.) don't pickle cleanly.
+#   2. Worker processes re-import the module fresh, so we want zero
+#      dependency on instance state.
+#
+# Quality is preserved: workers use the *exact* same pdfplumber call
+# (`page.extract_tables()` with default settings) and the same text formatting
+# logic as the serial path.
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _table_to_text_pure(df: "pd.DataFrame") -> str:
+    """Pure-function version of PDFProcessor._table_to_text.
+
+    Same output, no `self` — safe to call from worker processes.
+    """
+    lines: List[str] = []
+    headers = [str(col) for col in df.columns if col is not None]
+    if headers:
+        lines.append("Table: " + ", ".join(headers))
+    for _, row in df.iterrows():
+        row_parts = []
+        for col, val in zip(df.columns, row.values):
+            if val is not None and str(val).strip():
+                row_parts.append(f"{col}: {val}")
+        if row_parts:
+            lines.append("; ".join(row_parts))
+    return "\n".join(lines)
+
+
+def _extract_tables_for_page_range(
+    pdf_path: str,
+    page_indices: List[int],
+) -> List[Dict[str, Any]]:
+    """Worker: extract tables from a contiguous range of 1-indexed pages.
+
+    Runs in a separate process. Opens its own pdfplumber handle, processes
+    only the given page indices, then returns a list of table dicts. We
+    flush each page's pdfplumber cache after use so the worker's RSS stays
+    flat regardless of chunk size.
+    """
+    # Fresh imports because spawned workers don't inherit parent state
+    import logging as _logging
+    import pdfplumber as _pp
+    import pandas as _pd
+
+    _wlog = _logging.getLogger("processor.worker")
+    results: List[Dict[str, Any]] = []
+    if not page_indices:
+        return results
+
+    doc_stem = Path(pdf_path).stem
+    try:
+        with _pp.open(pdf_path) as pdf:
+            n_pages = len(pdf.pages)
+            for page_num in page_indices:
+                if page_num < 1 or page_num > n_pages:
+                    continue
+                try:
+                    page = pdf.pages[page_num - 1]
+                    try:
+                        tables = page.extract_tables()
+                    except Exception as pe:  # noqa: BLE001
+                        _wlog.warning(
+                            "Worker: extract_tables failed on page %d: %s",
+                            page_num, pe,
+                        )
+                        tables = []
+
+                    for table_idx, table in enumerate(tables):
+                        if not (table and len(table) > 1):
+                            continue
+                        try:
+                            headers = [
+                                str(h) if h else f"Col{i}"
+                                for i, h in enumerate(table[0])
+                            ]
+                            df = _pd.DataFrame(table[1:], columns=headers)
+                            table_text = _table_to_text_pure(df)
+                            del df
+                            if table_text and len(table_text) > 20:
+                                results.append({
+                                    'page_num': page_num,
+                                    'table_idx': table_idx,
+                                    'text': table_text,
+                                    'doc_name': doc_stem,
+                                })
+                        except Exception as te:  # noqa: BLE001
+                            _wlog.warning(
+                                "Worker: table format failed on page %d: %s",
+                                page_num, te,
+                            )
+
+                    try:
+                        page.flush_cache()
+                    except AttributeError:
+                        pass
+                except Exception as page_err:  # noqa: BLE001
+                    _wlog.warning(
+                        "Worker: page %d crashed: %s", page_num, page_err
+                    )
+        return results
+    except Exception as e:  # noqa: BLE001
+        _wlog.error(
+            "Worker for %s pages %s..%s aborted: %s",
+            pdf_path,
+            page_indices[0],
+            page_indices[-1],
+            e,
+        )
+        return results
+
+
+def _ocr_image_bytes(png_bytes: bytes) -> str:
+    """Worker: OCR a rendered page image (PNG bytes) with Tesseract.
+
+    Tesseract is invoked via subprocess by pytesseract, which releases the
+    GIL — so a ThreadPoolExecutor in the parent process gives us real
+    parallel OCR without the spawn-process overhead.
+    """
+    try:
+        import pytesseract as _pyt
+        from PIL import Image as _Image
+        img = _Image.open(io.BytesIO(png_bytes))
+        try:
+            return _pyt.image_to_string(img)
+        finally:
+            img.close()
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"OCR worker failed: {e}")
+        return ""
+
+
+def _decide_pdf_workers(num_pages: int, cap: int = 8) -> int:
+    """Pick a sensible worker count for a PDF of `num_pages` pages.
+
+    - Respects cgroup CPU affinity in Docker (Linux) via sched_getaffinity.
+    - Caps at `cap` to avoid pickling/IPC overhead dwarfing real work.
+    - Never spawns more workers than pages/4 (each worker should have real work).
+    """
+    try:
+        cpu = len(os.sched_getaffinity(0))  # respects Docker cgroup CPU limits
+    except (AttributeError, OSError):
+        cpu = os.cpu_count() or 2
+    return max(1, min(cap, cpu - 1, max(1, num_pages // 4)))
+
+
 # Class for processing PDF documents
 class PDFProcessor:
     """
@@ -107,49 +266,100 @@ class PDFProcessor:
     # Method to extract text from PDF
     def extract_text(self, pdf_path: str) -> List[Dict]:
         """
-        Extract text from PDF with page-level metadata
-        Falls back to OCR if text extraction yields empty content
-        
-        Args:
-            pdf_path: Path to PDF file
-            
-        Returns:
-            List of dictionaries containing text and metadata for each page
+        Extract text from PDF with page-level metadata.
+        Falls back to OCR for pages with insufficient text.
+
+        Pipeline:
+          Pass 1 (serial, fast): PyMuPDF text extraction. For pages that need
+            OCR, render to PNG bytes immediately (PyMuPDF page objects are not
+            thread-safe; the rendered bytes ARE).
+          Pass 2 (parallel threads, only if any pages need OCR): run Tesseract
+            on the rendered images. Tesseract releases the GIL via subprocess,
+            so threads give real parallelism without spawn overhead.
+
+        OCR settings, DPI (2x zoom), and Tesseract config are unchanged — the
+        textual output is identical to the old serial path; it just arrives
+        ~Nx faster on scan-heavy PDFs.
         """
-        logger.info(f"Processing PDF: {pdf_path}")  # Log start of processing
-        pages_content = []  # List to store page content
-        
+        logger.info(f"Processing PDF: {pdf_path}")
+        pages_content: List[Dict] = []
+
         try:
-            # Open PDF using PyMuPDF
+            # Pass 1 — direct PyMuPDF text + render OCR-needed pages
+            ocr_jobs: List[Tuple[int, bytes]] = []  # (page_num, png_bytes)
+            page_results: Dict[int, str] = {}  # page_num -> text (final or temp)
             with fitz.open(pdf_path) as doc:
-                # Process each page in the document (1-indexed)
                 for page_num, page in enumerate(doc, start=1):
-                    # Try direct text extraction first using PyMuPDF
-                    text = page.get_text("text")  # Extract text in plain text format
-                    
-                    # If text is empty or very short, try OCR
+                    text = page.get_text("text")
                     if self.use_ocr and (not text or len(text.strip()) < 20):
-                        logger.info(f"Page {page_num}: Low text content, attempting OCR...")
-                        text = self._ocr_page(page)  # Call OCR method
-                    
-                    # Clean extracted text
-                    cleaned_text = self._clean_text(text)
-                    
-                    # Only add pages with meaningful content
-                    if cleaned_text:
-                        pages_content.append({
-                            'page_num': page_num,  # Page number
-                            'text': cleaned_text,  # Cleaned text content
-                            'doc_name': Path(pdf_path).stem  # Document name without extension
-                        })
-                    
-            # Log completion
+                        logger.info(
+                            f"Page {page_num}: Low text content, queueing for OCR..."
+                        )
+                        if not OCR_AVAILABLE:
+                            page_results[page_num] = ""
+                            continue
+                        # Render synchronously (PyMuPDF Page is not thread-safe);
+                        # the resulting bytes are safe to pass to OCR threads.
+                        pix = None
+                        try:
+                            mat = fitz.Matrix(2.0, 2.0)
+                            pix = page.get_pixmap(matrix=mat)
+                            png_bytes = pix.tobytes("png")
+                            ocr_jobs.append((page_num, png_bytes))
+                            page_results[page_num] = ""  # placeholder, filled in pass 2
+                        except Exception as render_err:  # noqa: BLE001
+                            logger.warning(
+                                f"Page {page_num}: render-for-OCR failed: {render_err}"
+                            )
+                            page_results[page_num] = ""
+                        finally:
+                            try:
+                                if pix is not None and hasattr(pix, "close"):
+                                    pix.close()
+                            except Exception:  # noqa: BLE001
+                                pass
+                    else:
+                        page_results[page_num] = text
+
+            # Pass 2 — parallel OCR (only if any pages need it)
+            if ocr_jobs:
+                ocr_workers = min(4, max(1, len(ocr_jobs)))
+                logger.info(
+                    f"Running OCR on {len(ocr_jobs)} page(s) with {ocr_workers} thread(s)..."
+                )
+                with ThreadPoolExecutor(max_workers=ocr_workers) as ex:
+                    future_to_page = {
+                        ex.submit(_ocr_image_bytes, png): pn
+                        for pn, png in ocr_jobs
+                    }
+                    for fut in as_completed(future_to_page):
+                        pn = future_to_page[fut]
+                        try:
+                            ocr_text = fut.result()
+                        except Exception as ocr_err:  # noqa: BLE001
+                            logger.warning(f"OCR failed on page {pn}: {ocr_err}")
+                            ocr_text = ""
+                        page_results[pn] = ocr_text
+                        logger.info(
+                            f"  ▶ OCR done [page {pn}]: {len(ocr_text)} chars"
+                        )
+
+            # Assemble in original page order
+            for page_num in sorted(page_results.keys()):
+                cleaned_text = self._clean_text(page_results[page_num])
+                if cleaned_text:
+                    pages_content.append({
+                        'page_num': page_num,
+                        'text': cleaned_text,
+                        'doc_name': Path(pdf_path).stem,
+                    })
+
             logger.info(f"Extracted {len(pages_content)} pages from {pdf_path}")
-            return pages_content  # Return list of page content
-            
+            return pages_content
+
         except Exception as e:
-            logger.error(f"Error processing {pdf_path}: {str(e)}")  # Log error
-            raise  # Re-raise exception
+            logger.error(f"Error processing {pdf_path}: {str(e)}")
+            raise
     
     # Private method for OCR processing
     def _ocr_page(self, page) -> str:
@@ -166,25 +376,36 @@ class PDFProcessor:
         if not OCR_AVAILABLE:
             return ""  # Return empty string if OCR not available
         
+        pix = None
+        img = None
         try:
-            # Render page to image at high resolution for better OCR
-            mat = fitz.Matrix(2.0, 2.0)  # 2x zoom factor
-            pix = page.get_pixmap(matrix=mat)  # Create pixel map of the page
-            
-            # Convert pixmap to PIL Image
-            img_data = pix.tobytes("png")  # Convert to PNG bytes
-            img = Image.open(io.BytesIO(img_data))  # Create PIL Image from bytes
-            
-            # Perform OCR using Tesseract
+            mat = fitz.Matrix(2.0, 2.0)
+            pix = page.get_pixmap(matrix=mat)
+            img_data = pix.tobytes("png")
+            img = Image.open(io.BytesIO(img_data))
             text = pytesseract.image_to_string(img)
-            
-            # Log OCR result
             logger.info(f"OCR extracted {len(text)} characters")
-            return text  # Return OCR text
-            
+            return text
+
         except Exception as e:
-            logger.warning(f"OCR failed: {str(e)}")  # Log OCR failure
-            return ""  # Return empty string on failure
+            logger.warning(f"OCR failed: {str(e)}")
+            return ""
+        finally:
+            # Release the pixmap's C buffer and PIL image promptly. This matters
+            # when many pages need OCR back-to-back (e.g. scanned banking PDFs).
+            try:
+                if img is not None:
+                    img.close()
+            except Exception:  # noqa: BLE001
+                pass
+            try:
+                if pix is not None:
+                    # PyMuPDF Pixmap exposes both .close() (newer) and falls
+                    # back to del to drop the underlying C resource.
+                    if hasattr(pix, "close"):
+                        pix.close()
+            except Exception:  # noqa: BLE001
+                pass
     
     # Method to extract images from PDF (for multimodal RAG)
     def extract_images(self, pdf_path: str, min_size: int = 100, output_dir: str = None) -> List['ImageChunk']:
@@ -326,60 +547,206 @@ class PDFProcessor:
             return False
     
     # Method to extract tables from PDF
-    def extract_tables(self, pdf_path: str) -> List[Dict]:
+    def extract_tables(
+        self,
+        pdf_path: str,
+        max_pages: Optional[int] = None,
+        progress_every: int = 10,
+        num_workers: Optional[int] = None,
+        parallel_threshold: int = 16,
+    ) -> List[Dict]:
         """
-        Extract tables from PDF using pdfplumber
-        
+        Extract tables from PDF using pdfplumber.
+
+        For long documents the work is split across multiple processes; for
+        short ones we stay serial to avoid spawn overhead. Output is identical
+        in either path — same pdfplumber call, same formatting — so retrieval
+        quality is unchanged.
+
         Args:
-            pdf_path: Path to PDF file
-            
+            pdf_path: Path to PDF file.
+            max_pages: If not None, stop after this many pages. Useful for
+                pathologically large PDFs.
+            progress_every: Log a progress line every N pages (serial path
+                only; parallel path logs per worker).
+            num_workers: Override worker count. If None, auto-tuned from
+                CPU affinity and page count.
+            parallel_threshold: PDFs with fewer pages than this go through
+                the serial path (spawn overhead would dominate).
+
         Returns:
-            List of dictionaries containing table data and metadata
+            List of dictionaries containing table data and metadata, sorted
+            by (page_num, table_idx).
         """
-        logger.info(f"Extracting tables from: {pdf_path}")  # Log start of table extraction
-        tables_data = []  # List to store table data
-        
+        logger.info(f"Extracting tables from: {pdf_path}")
+
         try:
-            # Open PDF using pdfplumber (better for table extraction)
             with pdfplumber.open(pdf_path) as pdf:
-                # Process each page
+                total_pages = len(pdf.pages)
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Could not open {pdf_path} for table extraction: {e}")
+            return []
+
+        effective_limit = (
+            min(total_pages, max_pages) if max_pages is not None else total_pages
+        )
+        skipped_due_to_limit = max(0, total_pages - effective_limit)
+        if skipped_due_to_limit:
+            logger.warning(
+                "PDF has %d pages but max_pages=%d; skipping table "
+                "extraction on the trailing %d pages.",
+                total_pages, max_pages, skipped_due_to_limit,
+            )
+
+        if effective_limit < parallel_threshold:
+            return self._extract_tables_serial(
+                pdf_path, effective_limit, progress_every, skipped_due_to_limit,
+            )
+        return self._extract_tables_parallel(
+            pdf_path, effective_limit, num_workers, skipped_due_to_limit,
+        )
+
+    def _extract_tables_serial(
+        self,
+        pdf_path: str,
+        effective_limit: int,
+        progress_every: int,
+        skipped_due_to_limit: int,
+    ) -> List[Dict]:
+        """Serial table extraction — used for short PDFs."""
+        tables_data: List[Dict] = []
+        try:
+            with pdfplumber.open(pdf_path) as pdf:
                 for page_num, page in enumerate(pdf.pages, start=1):
-                    # Extract tables from page
-                    tables = page.extract_tables()
-                    
-                    # Process each table found on the page
+                    if page_num > effective_limit:
+                        break
+                    try:
+                        tables = page.extract_tables()
+                    except Exception as pe:  # noqa: BLE001
+                        logger.warning(
+                            "Table extraction failed on page %d: %s", page_num, pe
+                        )
+                        tables = []
+
                     for table_idx, table in enumerate(tables):
-                        # Check if table has meaningful content (headers and data)
-                        if table and len(table) > 1:
-                            try:
-                                # Convert table to DataFrame for easier handling
-                                # Handle None values in headers
-                                headers = [str(h) if h else f"Col{i}" for i, h in enumerate(table[0])]
-                                # Create DataFrame from table data (excluding header row)
-                                df = pd.DataFrame(table[1:], columns=headers)
-                                
-                                # Convert table to text format
-                                table_text = self._table_to_text(df)
-                                # Only add tables with meaningful content
-                                if table_text and len(table_text) > 20:
-                                    tables_data.append({
-                                        'page_num': page_num,  # Page number
-                                        'table_idx': table_idx,  # Table index on page
-                                        'dataframe': df,  # DataFrame representation
-                                        'text': table_text,  # Text representation
-                                        'doc_name': Path(pdf_path).stem  # Document name
-                                    })
-                            except Exception as te:
-                                # Log table processing error but continue
-                                logger.warning(f"Error processing table on page {page_num}: {te}")
-            
-            # Log completion
-            logger.info(f"Extracted {len(tables_data)} tables from {pdf_path}")
-            return tables_data  # Return list of table data
-            
-        except Exception as e:
-            logger.error(f"Error extracting tables from {pdf_path}: {str(e)}")  # Log error
-            return []  # Return empty list on error
+                        if not (table and len(table) > 1):
+                            continue
+                        try:
+                            headers = [
+                                str(h) if h else f"Col{i}"
+                                for i, h in enumerate(table[0])
+                            ]
+                            df = pd.DataFrame(table[1:], columns=headers)
+                            table_text = self._table_to_text(df)
+                            del df
+                            if table_text and len(table_text) > 20:
+                                tables_data.append({
+                                    'page_num': page_num,
+                                    'table_idx': table_idx,
+                                    'text': table_text,
+                                    'doc_name': Path(pdf_path).stem,
+                                })
+                        except Exception as te:  # noqa: BLE001
+                            logger.warning(
+                                "Error processing table on page %d: %s",
+                                page_num, te,
+                            )
+
+                    try:
+                        page.flush_cache()
+                    except AttributeError:
+                        getattr(page, "close", lambda: None)()
+
+                    if page_num % progress_every == 0 or page_num == effective_limit:
+                        logger.info(
+                            "  ▶ table extraction (serial): %d / %d pages, "
+                            "%d tables so far",
+                            page_num, effective_limit, len(tables_data),
+                        )
+                        gc.collect()
+
+            logger.info(
+                "Extracted %d tables from %s [serial, pages skipped: %d]",
+                len(tables_data), pdf_path, skipped_due_to_limit,
+            )
+            return tables_data
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Error extracting tables from {pdf_path}: {str(e)}")
+            return tables_data
+
+    def _extract_tables_parallel(
+        self,
+        pdf_path: str,
+        effective_limit: int,
+        num_workers: Optional[int],
+        skipped_due_to_limit: int,
+    ) -> List[Dict]:
+        """Parallel table extraction — splits pages across processes.
+
+        Each worker opens its own pdfplumber handle and processes a contiguous
+        chunk of pages. Results are merged and re-sorted to match the serial
+        output order.
+        """
+        workers = num_workers or _decide_pdf_workers(effective_limit)
+        all_pages = list(range(1, effective_limit + 1))
+        chunk_size = max(1, (len(all_pages) + workers - 1) // workers)
+        chunks = [
+            all_pages[i:i + chunk_size]
+            for i in range(0, len(all_pages), chunk_size)
+        ]
+        logger.info(
+            "Parallel table extraction: %d pages → %d workers, ~%d pages each",
+            effective_limit, len(chunks), chunk_size,
+        )
+
+        all_results: List[Dict] = []
+        # 'spawn' is used because the parent process has already imported heavy
+        # libraries (torch, transformers, streamlit). 'fork' would copy all of
+        # that and could deadlock on threading primitives held by them.
+        ctx = mp.get_context("spawn")
+        try:
+            with ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as ex:
+                future_to_chunk = {
+                    ex.submit(_extract_tables_for_page_range, pdf_path, chunk): chunk
+                    for chunk in chunks
+                }
+                completed = 0
+                for fut in as_completed(future_to_chunk):
+                    chunk = future_to_chunk[fut]
+                    try:
+                        chunk_results = fut.result()
+                        all_results.extend(chunk_results)
+                        completed += 1
+                        logger.info(
+                            "  ▶ worker done [pages %d–%d]: %d tables found "
+                            "(%d / %d workers complete)",
+                            chunk[0], chunk[-1], len(chunk_results),
+                            completed, len(chunks),
+                        )
+                    except Exception as e:  # noqa: BLE001
+                        logger.error(
+                            "Worker for pages %d–%d failed: %s",
+                            chunk[0], chunk[-1], e,
+                        )
+        except Exception as e:  # noqa: BLE001
+            # Hard fallback: if the process pool itself blows up (e.g. spawn
+            # forbidden in some sandboxed environment), fall back to serial
+            # so the user still gets results, just slower.
+            logger.error(
+                "Parallel table extraction failed (%s); falling back to serial.",
+                e,
+            )
+            return self._extract_tables_serial(
+                pdf_path, effective_limit, 10, skipped_due_to_limit,
+            )
+
+        all_results.sort(key=lambda r: (r['page_num'], r['table_idx']))
+        logger.info(
+            "Extracted %d tables from %s [parallel x%d, pages skipped: %d]",
+            len(all_results), pdf_path, workers, skipped_due_to_limit,
+        )
+        gc.collect()
+        return all_results
     
     # Helper method to clean text
     def _clean_text(self, text: str) -> str:
@@ -675,7 +1042,32 @@ class DocumentPipeline:
         self.pdf_processor = PDFProcessor(use_ocr=use_ocr)  # PDF processor
         self.excel_processor = ExcelProcessor()  # Excel processor
         self.chunker = DocumentChunker(chunk_size, overlap)  # Document chunker
-    
+
+    def _extract_text_and_tables_concurrent(
+        self, pdf_path: str
+    ) -> Tuple[List[Dict], List[Dict]]:
+        """Run text extraction and table extraction concurrently for one PDF.
+
+        They use independent libraries (PyMuPDF vs pdfplumber) and read the
+        same file read-only, so they can overlap freely. Two threads is
+        enough — table extraction itself fans out across processes internally,
+        and text extraction is mostly waiting on disk + Tesseract subprocess.
+        """
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            text_future = ex.submit(self.pdf_processor.extract_text, pdf_path)
+            tables_future = ex.submit(self.pdf_processor.extract_tables, pdf_path)
+            try:
+                pages = text_future.result()
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"extract_text failed for {pdf_path}: {e}")
+                pages = []
+            try:
+                tables = tables_future.result()
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"extract_tables failed for {pdf_path}: {e}")
+                tables = []
+        return pages, tables
+
     # Method to process all documents in a directory
     def process_directory(self, directory: str) -> List[DocumentChunk]:
         """
@@ -694,10 +1086,8 @@ class DocumentPipeline:
         for pdf_file in dir_path.glob("**/*.pdf"):  # Recursively find PDFs
             try:
                 logger.info(f"Processing PDF: {pdf_file.name}")
-                # Extract text pages from PDF
-                pages = self.pdf_processor.extract_text(str(pdf_file))
-                # Extract tables from PDF
-                tables = self.pdf_processor.extract_tables(str(pdf_file))
+                # Run text + table extraction concurrently (they're independent)
+                pages, tables = self._extract_text_and_tables_concurrent(str(pdf_file))
                 # Combine pages and tables
                 file_documents = pages + tables
                 
@@ -767,9 +1157,8 @@ class DocumentPipeline:
         # Process PDF files
         for pdf_file in dir_path.glob("**/*.pdf"):
             try:
-                # Extract text pages from PDF
-                pages = self.pdf_processor.extract_text(str(pdf_file))
-                tables = self.pdf_processor.extract_tables(str(pdf_file))
+                # Run text + table extraction concurrently (they're independent)
+                pages, tables = self._extract_text_and_tables_concurrent(str(pdf_file))
                 all_documents.extend(pages)
                 all_documents.extend(tables)
                 

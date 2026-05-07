@@ -31,8 +31,10 @@ services:
     volumes:
       # Mount data directory for document uploads (read-write)
       - ./data:/app/data
-      # Mount chunk_metadata for pre-loaded data (read-only)
-      - ./chunk_metadata:/app/chunk_metadata:ro
+      # Mount chunk_metadata for pre-loaded data.
+      # Read-write so `scripts/build_kg.py` can persist `kg.pkl` here. The pre-existing
+      # FAISS index and chunk_metadata.json are not modified at runtime by the app.
+      - ./chunk_metadata:/app/chunk_metadata
       # Mount .env file for API keys
       - ./.env:/app/.env:ro
       # Mount config file (read-only)
@@ -48,13 +50,33 @@ services:
       start_period: 120s
     networks:
       - rag-network
-    # Resource limits (adjust based on your system)
+    # Resource limits (adjust based on your system).
+    # NOTE: Bumped from 4G -> 8G after observing exit-code-137 (OOM kills) during
+    # ingestion of long PDFs (e.g. 92-page banking T&Cs with table extraction).
+    # The app's resident set already holds: sentence-transformers + transformers
+    # + torch (CPU) + OpenCLIP + Tesseract + spaCy/NetworkX (KG) + FAISS index
+    # + Streamlit. Steady-state is ~2.5–3 GB; PDF ingestion can transiently add
+    # 2–3 GB more. 8G provides comfortable headroom; 4G consistently OOM'd.
+    #
+    # CPU: pdfplumber's table extractor is single-threaded and pure-Python
+    # (GIL-bound). The processor.py pipeline now fans long PDFs out across
+    # processes — it autodetects the container's CPU affinity and uses up
+    # to 8 workers. Make sure the container can actually see those cores.
+    # Sized for a 4-CPU host: cap at 3.0 so the host OS / Docker daemon /
+    # WSL2 still has a core. Bump these if you move to a beefier machine
+    # (the parallel page workers in processor.py will scale automatically).
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 8G
+          cpus: '3.0'
         reservations:
-          memory: 2G
+          memory: 4G
+          cpus: '1.0'
+    # Larger /dev/shm so multiprocessing.Queue (used internally by
+    # ProcessPoolExecutor on Linux for IPC) has room for table results
+    # passed back from workers on long PDFs.
+    shm_size: '512mb'
 
 # Named volume for model cache persistence
 volumes:

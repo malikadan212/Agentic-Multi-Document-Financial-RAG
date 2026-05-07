@@ -58,7 +58,13 @@ RUN pip install --no-cache-dir \
     fpdf2>=2.7.0 \
     rouge-score \
     bert-score \
-    nltk>=3.8.0
+    nltk>=3.8.0 \
+    "networkx>=3.0" \
+    "spacy>=3.5,<4.0"
+
+# Download the spaCy model used by the temporal + KG modules. Done as a separate
+# layer so it's cached separately from the pip install.
+RUN python -m spacy download en_core_web_sm
 
 # Copy application code
 # Note: chunk_metadata/ is intentionally NOT copied; it's bind-mounted at runtime
