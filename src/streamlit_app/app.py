@@ -1519,7 +1519,7 @@ class RAGSystemUI:
                 def __init__(self, generator):
                     self.generator = generator
                     self.llm = self  # AgentExecutor expects generator.llm
-                    self.model_name = generator.model_name
+                    self.model_name = generator.llm.model_name
                 
                 def generate(self, prompt, system_prompt=None):
                     """Generate using the wrapped generator"""
@@ -1614,7 +1614,7 @@ class RAGSystemUI:
             response = GeneratedResponse(
                 answer=result.final_answer,
                 citations=citations,
-                model_used=st.session_state.generator.model_name,
+                model_used=st.session_state.generator.llm.model_name,
                 prompt_tokens=0,  # Not tracked in agentic mode
                 completion_tokens=0,
                 total_cost=0.0

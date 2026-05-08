@@ -74,6 +74,10 @@ COPY prompts/ ./prompts/
 COPY scripts/ ./scripts/
 COPY config.yaml ./config.yaml
 
+# Make the startup entrypoint executable. It builds the KG on first start if
+# chunk_metadata/kg.pkl is missing, then exec's the CMD (streamlit).
+RUN chmod +x /app/scripts/entrypoint.sh
+
 # Create necessary directories
 RUN mkdir -p data/temp data/raw
 
@@ -97,6 +101,9 @@ EXPOSE 8501
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+# Auto-build KG (if missing) before launching Streamlit
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 
 # Run Streamlit application
 CMD ["streamlit", "run", "src/streamlit_app/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
