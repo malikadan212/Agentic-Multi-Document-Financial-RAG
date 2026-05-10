@@ -65,7 +65,7 @@ class AgentExecutor:
         """
         self.retriever = retriever
         self.generator = generator
-        self.reflector = reflector or SelfReflector()
+        self.reflector = reflector or SelfReflector(generator)
         self.max_iterations = max_iterations
         self.confidence_threshold = confidence_threshold
     

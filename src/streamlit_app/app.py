@@ -71,7 +71,7 @@ logger = logging.getLogger(__name__)  # Create logger instance for this module
 # Configure Streamlit page settings
 st.set_page_config(
     page_title="Agentic Financial RAG | Temporal Reasoning & Knowledge Graphs",  # Browser tab title
-    page_icon="🧠",  # Favicon
+    page_icon=None,  # Favicon
     layout="wide",  # Use full-width layout
     initial_sidebar_state="expanded"  # Sidebar starts expanded
 )
@@ -768,6 +768,8 @@ class RAGSystemUI:
         # NEW: Selected follow-up (to auto-populate query)
         if 'selected_followup' not in st.session_state:
             st.session_state.selected_followup = ""
+        if 'auto_submit' not in st.session_state:
+            st.session_state.auto_submit = False
         
         # NEW: Streaming preference
         if 'enable_streaming' not in st.session_state:
@@ -780,48 +782,48 @@ class RAGSystemUI:
     # Method to render the application header
     def render_header(self):
         """Render application header"""
-        st.markdown('<div class="main-header">🧠 Agentic Financial RAG</div>', unsafe_allow_html=True)
+        st.markdown('<div class="main-header">Agentic Financial RAG</div>', unsafe_allow_html=True)
         st.markdown('<div class="brand-tagline">Temporal Reasoning • Knowledge Graphs • Hallucination Grounding</div>', unsafe_allow_html=True)
         st.markdown('<div class="sub-header">Advanced Multi-Document Analysis with Intelligent Agent Architecture</div>', unsafe_allow_html=True)
-        
-        with st.expander("🔬 About This Research System"):
+
+        with st.expander("About This Research System"):
             st.markdown("""
             <div style='color: #e0e0e0; line-height: 1.8;'>
-            
+
             ## Agentic Multi-Document Financial RAG System
-            
+
             **With Temporal Reasoning, Knowledge Graph Integration, and Hallucination Grounding**
-            
+
             This is a cutting-edge research implementation that goes beyond traditional RAG systems by incorporating:
-            
-            ### 🎯 Core Innovations
-            
+
+            ### Core Innovations
+
             #### 1. **Agentic Architecture**
             - Autonomous decision-making for query decomposition
             - Multi-step reasoning with self-reflection
             - Dynamic retrieval strategy selection
             - Adaptive context management
-            
+
             #### 2. **Temporal Reasoning**
             - Time-aware document analysis
             - Historical trend detection
             - Temporal relationship extraction
             - Date-sensitive query handling
-            
+
             #### 3. **Knowledge Graph Integration**
             - Entity relationship mapping
             - Cross-document knowledge synthesis
             - Graph-based reasoning paths
             - Semantic relationship discovery
-            
+
             #### 4. **Hallucination Grounding**
             - Source verification mechanisms
             - Confidence-based response filtering
             - Citation validation and tracking
             - Fact-checking against retrieved context
-            
-            ### 🚀 Technical Capabilities
-            
+
+            ### Technical Capabilities
+
             - **Multi-Format Processing**: PDF, Excel, CSV with OCR support
             - **Advanced Embeddings**: Multiple state-of-the-art models (MiniLM, MPNet, RoBERTa)
             - **Hybrid Retrieval**: FAISS and ChromaDB vector stores
@@ -830,20 +832,20 @@ class RAGSystemUI:
             - **Semantic Highlighting**: Automatic source-answer matching
             - **Analytics Dashboard**: Performance tracking and insights
             - **PDF Export**: Complete session documentation
-            
-            ### 📊 Research Focus
-            
+
+            ### Research Focus
+
             This system addresses key challenges in financial document analysis:
             - **Accuracy**: Hallucination detection and grounding
             - **Context**: Temporal awareness and historical reasoning
             - **Intelligence**: Agentic behavior and autonomous decision-making
             - **Transparency**: Full citation tracking and source attribution
-            
-            ### 🎓 Academic Project
-            
-            **Developed by:** Adan Malik, Shayan Ahmed, Bilal Raza  
-            **Course:** Generative AI  
-            **Instructor:** Sir Akhtar Jamil  
+
+            ### Academic Project
+
+            **Developed by:** Adan Malik, Shayan Ahmed, Bilal Raza
+            **Course:** Generative AI
+            **Instructor:** Sir Akhtar Jamil
             **Institution:** FAST-NUCES
             
             ---
@@ -938,13 +940,13 @@ class RAGSystemUI:
             st.divider()
             
             # Data Source Selection Section
-            st.markdown("### 📁 Data Source")
+            st.markdown("### Data Source")
             data_mode = st.radio(
                 "Choose data source",
                 options=['upload', 'preloaded'],
                 format_func=lambda x: {
-                    'upload': '📤 Upload Documents',
-                    'preloaded': '⚡ Pre-loaded Data'
+                    'upload': 'Upload Documents',
+                    'preloaded': 'Pre-loaded Data'
                 }[x],
                 help="Upload new documents or use existing pre-processed data",
                 index=0 if st.session_state.data_mode == 'upload' else 1
@@ -962,62 +964,72 @@ class RAGSystemUI:
                 # Note: 27,283 is the chunk count (each PDF gets split into many
                 # 512-token chunks), not the document count. Once the index loads
                 # the main panel shows the actual document count.
-                st.success("✅ Pre-indexed banking corpus ready (27,283 chunks)")
+                st.success("Pre-indexed banking corpus ready (27,283 chunks)")
             
             st.divider()
             
             # Embedding Model Selection
-            st.markdown("### 🧠 Embedding Model")
+            st.markdown("### Embedding Model")
             embedding_model = st.selectbox(
                 "Select Model",
                 options=['minilm', 'mpnet', 'distilbert', 'roberta'],
                 format_func=lambda x: {
-                    'minilm': '⚡ MiniLM (Fast, 384d)',
-                    'mpnet': '⚖️ MPNet (Balanced, 768d)',
-                    'distilbert': '🎯 DistilBERT (768d)',
-                    'roberta': '🏆 RoBERTa (Best, 1024d)'
+                    'minilm': 'MiniLM (Fast, 384d)',
+                    'mpnet': 'MPNet (Balanced, 768d)',
+                    'distilbert': 'DistilBERT (768d)',
+                    'roberta': 'RoBERTa (Best, 1024d)'
                 }[x]
             )
-            
+
             # Vector Store Selection
-            st.markdown("### 💾 Vector Store")
+            st.markdown("### Vector Store")
             vector_store = st.selectbox(
                 "Select Store",
                 options=['faiss', 'chroma'],
-                format_func=lambda x: '⚡ FAISS (Fast)' if x == 'faiss' else '💿 ChromaDB (Persistent)'
+                format_func=lambda x: 'FAISS (Fast)' if x == 'faiss' else 'ChromaDB (Persistent)'
             )
-            
+
             # LLM Provider Selection
-            st.markdown("### 🤖 LLM Provider")
+            st.markdown("### LLM Provider")
             llm_provider = st.selectbox(
                 "Select Provider",
                 options=['groq', 'groq_vision', 'openai', 'anthropic', 'google', 'cohere'],
                 format_func=lambda x: {
-                    'groq': '🚀 Groq (FREE)',
-                    'groq_vision': '👁️ Groq Vision (FREE)',
-                    'openai': '🟢 OpenAI GPT',
-                    'anthropic': '🔵 Anthropic Claude',
-                    'google': '🔴 Google Gemini',
-                    'cohere': '🟣 Cohere Command'
+                    'groq': 'Groq (FREE)',
+                    'groq_vision': 'Groq Vision (FREE)',
+                    'openai': 'OpenAI GPT',
+                    'anthropic': 'Anthropic Claude',
+                    'google': 'Google Gemini',
+                    'cohere': 'Cohere Command'
                 }[x]
             )
-            
+
             # Model selection based on provider
             if llm_provider == 'openai':
-                st.warning("⚠️ Requires OPENAI_API_KEY")
+                st.warning("Requires OPENAI_API_KEY")
                 model_name = st.selectbox("Model", options=['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'])
             elif llm_provider == 'anthropic':
-                st.warning("⚠️ Requires ANTHROPIC_API_KEY")
+                st.warning("Requires ANTHROPIC_API_KEY")
                 model_name = st.selectbox("Model", options=['claude-3-sonnet-20240229', 'claude-3-opus-20240229'])
             elif llm_provider == 'google':
                 st.warning("Requires GOOGLE_API_KEY")
                 model_name = st.selectbox(
                     "Model",
-                    options=['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'],
+                    options=[
+                        'gemini-3.1-pro-preview',
+                        'gemini-3.1-flash-lite',
+                        'gemini-3-pro-preview',
+                        'gemini-2.5-pro',
+                        'gemini-2.5-flash',
+                        'gemini-2.0-flash',
+                    ],
                     format_func=lambda x: {
-                        'gemini-1.5-flash': 'Gemini 1.5 Flash (Fast)',
-                        'gemini-1.5-pro': 'Gemini 1.5 Pro (Best)',
-                        'gemini-2.0-flash': 'Gemini 2.0 Flash'
+                        'gemini-3.1-pro-preview': 'Gemini 3.1 Pro (Latest, Most Capable)',
+                        'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite (Latest, Fast)',
+                        'gemini-3-pro-preview': 'Gemini 3 Pro (Preview)',
+                        'gemini-2.5-pro': 'Gemini 2.5 Pro',
+                        'gemini-2.5-flash': 'Gemini 2.5 Flash',
+                        'gemini-2.0-flash': 'Gemini 2.0 Flash (Stable)',
                     }[x]
                 )
             elif llm_provider == 'cohere':
@@ -1041,7 +1053,7 @@ class RAGSystemUI:
                 )
             
             # Generation Parameters
-            st.subheader("⚙️ Parameters")
+            st.subheader("Parameters")
             temperature = st.slider("Temperature", min_value=0.0, max_value=1.0, value=0.1, step=0.1)
             max_tokens = st.slider("Max Tokens", min_value=256, max_value=2048, value=1000, step=256)
             top_k = st.slider("Top-K Retrieval", min_value=1, max_value=10, value=5)
@@ -1049,7 +1061,7 @@ class RAGSystemUI:
             st.divider()
             
             # NEW: Temporal Filtering
-            st.markdown("### 📅 Temporal Filtering")
+            st.markdown("### Temporal Filtering")
             enable_temporal = st.toggle(
                 "Enable Date Filtering",
                 value=False,
@@ -1081,7 +1093,7 @@ class RAGSystemUI:
             st.divider()
             
             # NEW: Agentic Capabilities
-            st.markdown("### 🤖 Agentic Mode")
+            st.markdown("### Agentic Mode")
             enable_agentic = st.toggle(
                 "Enable Agentic Processing",
                 value=True,
@@ -1117,7 +1129,7 @@ class RAGSystemUI:
             # The persisted KG is built offline by `scripts/build_kg.py` and lives
             # at `chunk_metadata/kg.pkl`. If it's missing, we surface a hint instead
             # of a silent failure.
-            st.markdown("### 🕸️ Knowledge Graph")
+            st.markdown("### Knowledge Graph")
             kg_path = Path("chunk_metadata/kg.pkl")
             kg_present = KG_MODULE_AVAILABLE and kg_path.exists()
             kg_help = (
@@ -1135,9 +1147,9 @@ class RAGSystemUI:
                 ),
             )
             if not KG_MODULE_AVAILABLE:
-                st.caption("⚠️ KG module not installed (networkx missing).")
+                st.caption("KG module not installed (networkx missing).")
             elif not kg_path.exists():
-                st.caption("⚠️ Run `python scripts/build_kg.py` to build the graph.")
+                st.caption("Run `python scripts/build_kg.py` to build the graph.")
 
             kg_config = {'enabled': bool(enable_kg and kg_present)}
 
@@ -1392,36 +1404,36 @@ class RAGSystemUI:
         self.render_summary_cards()
         
         # Example queries
-        with st.expander("💡 Example Queries - Showcasing Advanced Capabilities"):
+        with st.expander("Example Queries - Showcasing Advanced Capabilities"):
             st.markdown("""
-            **🔍 Factual Retrieval:**
+            **Factual Retrieval:**
             - What was the total revenue in Q3 2023?
             - What are the current credit card interest rates?
-            
-            **📊 Temporal Reasoning:**
+
+            **Temporal Reasoning:**
             - How has revenue changed over the last 3 quarters?
             - What were the key financial metrics in 2022 vs 2023?
             - Show me the trend in operating expenses over time
             - What were the credit card rates in Q2 2024?
             - Show me documents valid for July-December 2025
             - Find information effective from July 1, 2025
-            
-            **🧮 Multi-Step Calculations:**
+
+            **Multi-Step Calculations:**
             - Calculate the P/E ratio from the financial statements
             - What is the year-over-year growth rate in net income?
             - Compute the debt-to-equity ratio and explain its implications
-            
-            **🔗 Knowledge Graph Queries:**
+
+            **Knowledge Graph Queries:**
             - What is the relationship between revenue and marketing spend?
             - How are different product lines connected to overall profitability?
             - Map the dependencies between business segments
-            
-            **⚖️ Comparative Analysis:**
+
+            **Comparative Analysis:**
             - Compare gross margins across all quarters
             - How does operating income compare to previous year?
             - Contrast the performance of different business units
-            
-            **🎯 Hallucination-Grounded Responses:**
+
+            **Hallucination-Grounded Responses:**
             - Provide evidence for the claim that revenue increased
             - What specific documents support the reported profit margin?
             - Verify the accuracy of the stated market share
@@ -1447,22 +1459,25 @@ class RAGSystemUI:
         
         # Query input - check for selected follow-up
         default_query = st.session_state.selected_followup if st.session_state.selected_followup else ""
+        auto_submit = st.session_state.auto_submit
         if st.session_state.selected_followup:
             st.session_state.selected_followup = ""  # Clear after using
-        
+        if st.session_state.auto_submit:
+            st.session_state.auto_submit = False  # Clear flag after reading
+
         query = st.text_area(
-            "Enter your question:", 
+            "Enter your question:",
             value=default_query,
-            height=100, 
+            height=100,
             placeholder="e.g., What was the total revenue?"
         )
-        
+
         col1, col2 = st.columns([3, 1])
         with col1:
             search_button = st.button("Search", type="primary")
         with col2:
             clear_button = st.button("Clear History")
-        
+
         if clear_button:
             st.session_state.query_history = []
             st.session_state.total_cost = 0.0
@@ -1475,8 +1490,8 @@ class RAGSystemUI:
             }
             st.session_state.follow_up_questions = []
             st.rerun()
-        
-        if search_button and query:
+
+        if (search_button or auto_submit) and query:
             self.process_query(query, config)
     
     # Method to process user query
@@ -1537,8 +1552,8 @@ class RAGSystemUI:
             )
             
             # Phase 1: Planning
-            st.markdown("### 🧠 Agentic Processing")
-            with st.expander("📋 Query Analysis & Planning", expanded=True):
+            st.markdown("### Agentic Processing")
+            with st.expander("Query Analysis & Planning", expanded=True):
                 plan = planner.analyze_query(query)
                 
                 col1, col2, col3 = st.columns(3)
@@ -1558,7 +1573,7 @@ class RAGSystemUI:
                     st.info("Simple query - no decomposition needed")
             
             # Phase 2: Execution
-            with st.spinner("🚀 Executing multi-step reasoning..."):
+            with st.spinner("Executing multi-step reasoning..."):
                 result = executor.execute(
                     plan=plan,
                     top_k=config['top_k'],
@@ -1567,7 +1582,7 @@ class RAGSystemUI:
             
             # Display execution details
             if len(result.steps) > 1:
-                with st.expander("🔍 Execution Steps", expanded=False):
+                with st.expander("Execution Steps", expanded=False):
                     for i, step in enumerate(result.steps, 1):
                         st.markdown(f"**Step {i}:** {step.sub_query.question}")
                         st.markdown(f"- Confidence: {step.confidence:.2f}")
@@ -1581,7 +1596,7 @@ class RAGSystemUI:
             
             # Display reflection info
             if result.iterations > 0:
-                with st.expander("🔄 Self-Reflection & Refinement", expanded=False):
+                with st.expander("Self-Reflection & Refinement", expanded=False):
                     st.info(f"Answer was refined {result.iterations} time(s) to improve quality")
                     for step in result.steps:
                         if step.reflection and step.reflection.suggestions:
@@ -1687,8 +1702,6 @@ class RAGSystemUI:
         except Exception as e:
             st.error(f"Agentic processing error: {str(e)}")
             logger.error(f"Agentic error: {e}", exc_info=True)
-            st.info("Falling back to standard processing...")
-            self.process_query_standard(query, config)
     
     # Method for standard query processing
     def process_query_standard(self, query, config):
@@ -2052,6 +2065,7 @@ For observations from images, describe what you see clearly."""
                 with col:
                     if st.button(f"{question}", key=f"followup_{i}"):
                         st.session_state.selected_followup = question
+                        st.session_state.auto_submit = True
                         st.rerun()
         
         # NEW: Retrieved Sources with semantic highlighting
@@ -2072,7 +2086,7 @@ For observations from images, describe what you see clearly."""
                 st.divider()
         
         # NEW: Temporal Information Display
-        with st.expander(f"📅 Temporal Information", expanded=False):
+        with st.expander("Temporal Information", expanded=False):
             temporal_chunks = []
             for result in retrieved_results:
                 has_temporal = False
@@ -2095,7 +2109,7 @@ For observations from images, describe what you see clearly."""
                     
                     # Show validity period
                     if hasattr(result, 'valid_from') and result.valid_from:
-                        st.markdown(f"📆 **Valid Period**: `{result.valid_from}` to `{result.valid_to}`")
+                        st.markdown(f"**Valid Period**: `{result.valid_from}` to `{result.valid_to}`")
                     
                     # Show extracted entities
                     if hasattr(result, 'temporal_entities') and result.temporal_entities:

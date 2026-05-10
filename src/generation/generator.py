@@ -304,17 +304,19 @@ class GoogleLLM(BaseLLM):
     
     # Model name mapping (user-friendly names to actual model names)
     MODEL_MAPPING = {
-        'gemini-1.5-flash': 'gemini-1.5-flash',  # Fast model
-        'gemini-1.5-pro': 'gemini-1.5-pro',  # High quality model
-        'gemini-2.0-flash': 'gemini-2.0-flash-exp',  # Experimental 2.0 model
-        'gemini-pro': 'gemini-1.5-flash',  # Legacy name mapping
-        # Fallback aliases for non-existent models
-        'gemini-2.5-flash': 'gemini-1.5-flash',  # Map to 1.5 if 2.5 doesn't exist
-        'gemini-2.5-pro': 'gemini-1.5-pro',  # Map to 1.5 if 2.5 doesn't exist
+        'gemini-3.1-pro-preview': 'gemini-3.1-pro-preview',
+        'gemini-3.1-flash-lite': 'gemini-3.1-flash-lite',
+        'gemini-3-pro-preview': 'gemini-3-pro-preview',
+        'gemini-2.5-pro': 'gemini-2.5-pro',
+        'gemini-2.5-flash': 'gemini-2.5-flash',
+        'gemini-2.0-flash': 'gemini-2.0-flash',
+        'gemini-1.5-flash': 'gemini-2.5-flash',  # remap deprecated
+        'gemini-1.5-pro': 'gemini-2.5-pro',      # remap deprecated
+        'gemini-pro': 'gemini-2.5-flash',
     }
     
     # Initialize Google Gemini client
-    def __init__(self, model_name: str = 'gemini-1.5-flash', config: GenerationConfig = None):
+    def __init__(self, model_name: str = 'gemini-3.1-pro-preview', config: GenerationConfig = None):
         if not GOOGLE_AVAILABLE:
             raise ImportError("Google Generative AI library not installed. Install with: pip install google-generativeai")
         super().__init__(model_name, config or GenerationConfig())  # Call parent constructor
@@ -324,7 +326,7 @@ class GoogleLLM(BaseLLM):
         genai.configure(api_key=api_key)  # Configure Google AI
         
         # Use mapped model name (default to gemini-2.5-flash if not in mapping)
-        actual_model_name = self.MODEL_MAPPING.get(model_name, 'gemini-2.5-flash')
+        actual_model_name = self.MODEL_MAPPING.get(model_name, 'gemini-3.1-pro-preview')
         try:
             self.model = genai.GenerativeModel(actual_model_name)  # Create model instance
             self.model_name = actual_model_name  # Store actual model name

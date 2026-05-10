@@ -211,9 +211,9 @@ class AgentPlanner:
             complexity_score += 1
         
         # Classify based on score
-        if complexity_score >= 5:
+        if complexity_score >= 6:
             return QueryComplexity.COMPLEX
-        elif complexity_score >= 2:
+        elif complexity_score >= 4:
             return QueryComplexity.MODERATE
         else:
             return QueryComplexity.SIMPLE
@@ -247,105 +247,78 @@ class AgentPlanner:
         query_lower = query.lower()
         
         if query_type == QueryType.COMPARISON:
-            # Extract entities to compare
-            # Example: "Compare credit card rates between 2024 and 2025"
             sub_queries = [
                 SubQuery(
-                    question=f"What are the credit card rates in 2024?",
+                    question=query,
                     query_type=QueryType.FACTUAL,
                     dependencies=[],
                     priority=1,
                     context_needed=False
                 ),
                 SubQuery(
-                    question=f"What are the credit card rates in 2025?",
-                    query_type=QueryType.FACTUAL,
-                    dependencies=[],
-                    priority=1,
-                    context_needed=False
-                ),
-                SubQuery(
-                    question=f"Compare the rates from both periods",
+                    question=f"Based on the retrieved information, compare and contrast: {query}",
                     query_type=QueryType.COMPARISON,
-                    dependencies=[0, 1],
+                    dependencies=[0],
                     priority=2,
                     context_needed=True
                 )
             ]
-        
+
         elif query_type == QueryType.TREND:
-            # Example: "How have fees changed over time?"
             sub_queries = [
                 SubQuery(
-                    question="What were the fees in the earliest period?",
+                    question=query,
                     query_type=QueryType.FACTUAL,
                     dependencies=[],
                     priority=1,
                     context_needed=False
                 ),
                 SubQuery(
-                    question="What are the current fees?",
-                    query_type=QueryType.FACTUAL,
-                    dependencies=[],
-                    priority=1,
-                    context_needed=False
-                ),
-                SubQuery(
-                    question="Analyze the trend in fees over time",
+                    question=f"Analyze the trend and changes shown in the retrieved data for: {query}",
                     query_type=QueryType.TREND,
-                    dependencies=[0, 1],
+                    dependencies=[0],
                     priority=2,
                     context_needed=True
                 )
             ]
-        
+
         elif query_type == QueryType.AGGREGATION:
-            # Example: "What is the total revenue across all quarters?"
             sub_queries = [
                 SubQuery(
-                    question="Find revenue for each quarter",
+                    question=query,
                     query_type=QueryType.FACTUAL,
                     dependencies=[],
                     priority=1,
                     context_needed=False
                 ),
                 SubQuery(
-                    question="Calculate total revenue",
+                    question=f"Summarize and aggregate the retrieved figures to answer: {query}",
                     query_type=QueryType.CALCULATION,
                     dependencies=[0],
                     priority=2,
                     context_needed=True
                 )
             ]
-        
+
         elif query_type == QueryType.MULTI_HOP:
-            # Example: "What is the interest rate for personal loans and how does it compare to car loans?"
             sub_queries = [
                 SubQuery(
-                    question="What is the interest rate for personal loans?",
+                    question=query,
                     query_type=QueryType.FACTUAL,
                     dependencies=[],
                     priority=1,
                     context_needed=False
                 ),
                 SubQuery(
-                    question="What is the interest rate for car loans?",
+                    question=f"Using the retrieved context, provide a complete answer to: {query}",
                     query_type=QueryType.FACTUAL,
-                    dependencies=[],
-                    priority=1,
-                    context_needed=False
-                ),
-                SubQuery(
-                    question="Compare the interest rates",
-                    query_type=QueryType.COMPARISON,
-                    dependencies=[0, 1],
+                    dependencies=[0],
                     priority=2,
                     context_needed=True
                 )
             ]
-        
+
         else:
-            # Simple query - no decomposition needed
             sub_queries = [SubQuery(
                 question=query,
                 query_type=query_type,
