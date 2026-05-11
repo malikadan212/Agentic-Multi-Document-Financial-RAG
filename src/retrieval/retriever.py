@@ -343,35 +343,44 @@ class HybridRetriever:
         logger.info(f"✅ HybridRetriever initialized: {embedding_model}, {vector_store_type}")
     
     # Method to index document chunks
-    def index_documents(self, chunks: List):
+    def index_documents(self, chunks: List, progress_callback=None, batch_size: int = 64):
         """
-        Index document chunks
-        
+        Index document chunks with optional progress reporting.
+
         Args:
             chunks: List of DocumentChunk objects
+            progress_callback: Optional callable(done, total) called after each batch
+            batch_size: Number of chunks to encode per batch
         """
-        # Log start of indexing
         logger.info(f"Indexing {len(chunks)} document chunks...")
-        
-        # Generate embeddings for all chunk texts
+
         texts = [chunk.content for chunk in chunks]
-        embeddings = self.embedding_model.encode(texts)
-        
-        # Create appropriate vector store based on configuration
+        total = len(texts)
+        all_embeddings = []
+
+        for start in range(0, total, batch_size):
+            batch = texts[start:start + batch_size]
+            batch_embeddings = self.embedding_model.encode(batch, show_progress=False)
+            all_embeddings.append(batch_embeddings)
+            done = min(start + batch_size, total)
+            logger.info(f"  Embedded {done}/{total} chunks")
+            if progress_callback:
+                progress_callback(done, total)
+
+        embeddings = np.vstack(all_embeddings)
+
         if self.vector_store_type == 'faiss':
             self.vector_store = FAISSVectorStore(
-                dimension=self.embedding_model.dimension,  # Embedding dimension
-                use_ivf=(len(chunks) > 10000)  # Use IVF only for large datasets (>10k chunks)
+                dimension=self.embedding_model.dimension,
+                use_ivf=(len(chunks) > 10000)
             )
         elif self.vector_store_type == 'chroma':
-            self.vector_store = ChromaVectorStore()  # ChromaDB with default settings
+            self.vector_store = ChromaVectorStore()
         else:
             raise ValueError(f"Unknown vector store type: {self.vector_store_type}")
-        
-        # Add documents to the vector store
+
         self.vector_store.add_documents(chunks, embeddings)
-        # Log successful indexing
-        logger.info(f"✅ Indexed {len(chunks)} chunks")
+        logger.info(f"Indexed {len(chunks)} chunks")
     
     # Main retrieval method
     def retrieve(self, 

@@ -765,11 +765,10 @@ class RAGSystemUI:
         if 'follow_up_questions' not in st.session_state:
             st.session_state.follow_up_questions = []
         
-        # NEW: Selected follow-up (to auto-populate query)
-        if 'selected_followup' not in st.session_state:
-            st.session_state.selected_followup = ""
         if 'auto_submit' not in st.session_state:
             st.session_state.auto_submit = False
+        if 'query_input' not in st.session_state:
+            st.session_state.query_input = ""
         
         # NEW: Streaming preference
         if 'enable_streaming' not in st.session_state:
@@ -1333,16 +1332,21 @@ class RAGSystemUI:
                         st.session_state.image_chunks = []
                     
                     progress_bar.progress(50)
-                    status_text.text("Generating embeddings...")
-                    
+                    status_text.text(f"Generating embeddings for {len(chunks)} chunks...")
+
                     retriever = HybridRetriever(
                         embedding_model=config['embedding_model'],
                         vector_store_type=config['vector_store'],
                         top_k=config['top_k']
                     )
-                    
-                    retriever.index_documents(chunks)
-                    
+
+                    def embedding_progress(done, total):
+                        pct = 50 + int(30 * done / total)
+                        progress_bar.progress(pct)
+                        status_text.text(f"Generating embeddings... {done}/{total} chunks")
+
+                    retriever.index_documents(chunks, progress_callback=embedding_progress)
+
                     progress_bar.progress(80)
                     status_text.text("Initializing LLM...")
                     
@@ -1457,17 +1461,14 @@ class RAGSystemUI:
             else:
                 st.session_state.uploaded_image = None
         
-        # Query input - check for selected follow-up
-        default_query = st.session_state.selected_followup if st.session_state.selected_followup else ""
+        # Query input
         auto_submit = st.session_state.auto_submit
-        if st.session_state.selected_followup:
-            st.session_state.selected_followup = ""  # Clear after using
         if st.session_state.auto_submit:
-            st.session_state.auto_submit = False  # Clear flag after reading
+            st.session_state.auto_submit = False
 
         query = st.text_area(
             "Enter your question:",
-            value=default_query,
+            key="query_input",
             height=100,
             placeholder="e.g., What was the total revenue?"
         )
@@ -2061,12 +2062,19 @@ For observations from images, describe what you see clearly."""
         if st.session_state.follow_up_questions:
             st.markdown("### Suggested Follow-ups")
             cols = st.columns(len(st.session_state.follow_up_questions))
+
+            def _select_followup(q):
+                st.session_state.query_input = q
+                st.session_state.auto_submit = True
+
             for i, (col, question) in enumerate(zip(cols, st.session_state.follow_up_questions)):
                 with col:
-                    if st.button(f"{question}", key=f"followup_{i}"):
-                        st.session_state.selected_followup = question
-                        st.session_state.auto_submit = True
-                        st.rerun()
+                    st.button(
+                        f"{question}",
+                        key=f"followup_{i}",
+                        on_click=_select_followup,
+                        args=(question,),
+                    )
         
         # NEW: Retrieved Sources with semantic highlighting
         with st.expander(f"Retrieved Sources ({len(retrieved_results)} chunks)", expanded=False):
